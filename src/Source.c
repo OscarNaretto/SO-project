@@ -4,7 +4,7 @@ void source_signal_actions();
 void source_handle_signal(int signum);
 void source_set_maps();
 
-
+int **source_map;
 sigset_t mask;
 
 int main(int argc, char *argv[]){
@@ -47,20 +47,20 @@ void source_handle_signal(int signum){
 
 void source_set_maps(){
     int i, j, offset = 0;
-    map = (int **)malloc(SO_HEIGHT * sizeof(int *));
-    if (map == NULL){
-        allocation_error("Source", "map");
+    source_map = (int **)malloc(SO_HEIGHT * sizeof(int *));
+    if (source_map == NULL){
+        allocation_error("Source", "source_map");
     }
     for (i = 0; i < SO_HEIGHT; i++){
-        map[i] = malloc(SO_WIDTH * sizeof(int));
-        if (map[i] == NULL){
-            allocation_error("Source", "map");
+        source_map[i] = malloc(SO_WIDTH * sizeof(int));
+        if (source_map[i] == NULL){
+            allocation_error("Source", "source_map");
         }
     }
 
     for (i = 0; i < SO_HEIGHT; i++){
         for(j = 0; j < SO_WIDTH; j++){
-            map[i][j] = //shd_mem_map[offset].cell_map_value; //controllare cell_map_value 
+            source_map[i][j] = //shd_mem_map[offset].cell_map_value; //controllare cell_map_value 
             offset++;
         }
     }

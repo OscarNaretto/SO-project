@@ -22,9 +22,6 @@
 #define SO_WIDTH 20
 #define SO_HEIGHT 10
 
-int **map;
-
-
 
 
 
