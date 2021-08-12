@@ -30,6 +30,30 @@
 					   errno,\
 					   strerror(errno));exit(-1);}
 
+//cell value passed to source process
+typedef struct {
+    int cell_value;
+} source_value_struct;
+
+//cell value and timensec value passed to taxi process
+typedef struct{
+	int cell_value; 
+	long int cell_timensec_value; 
+} taxi_value_struct;
+
+//returned stats printed by Master
+typedef struct{
+	int trips_completed;
+	int longest_trip;
+	int slowest_trip;
+	int max_trips_completed;
+	int top_cells_map[SO_HEIGHT][SO_WIDTH];    
+	pid_t pid_longest_trip;
+	pid_t pid_slowest_trip;
+	pid_t pid_max_trips_completed;
+} returned_stats;
+returned_stats *shd_mem_returned_stats;
+
 void allocation_error(char *file, char *data_structure);
 
 //semaphores

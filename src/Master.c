@@ -7,6 +7,7 @@ void maps_generator();
 void master_map_initialization();
 int can_be_placed(int x, int y);
 void shd_memory_generator();
+void shd_memory_initialization();
 void semaphore_generator();
 void msgqueue_generator();
 
@@ -30,6 +31,13 @@ int SO_INIT_REQUESTS_MAX  = -1;
 int **master_map;
 int **master_cap_map;
 long int **master_timensec_map;
+
+//shared memory
+int shd_mem_to_source_id;
+int shd_mem_to_taxi_id; 
+int shd_mem_returned_stats_id; 
+source_value_struct *shd_mem_to_source;
+taxi_value_struct *shd_mem_to_taxi;
 
 //semaphores
 union semun arg;
@@ -238,20 +246,62 @@ void master_map_initialization(){
 }
 
 int can_be_placed(int x, int y){ 
-    if (x > 0 && y > 0 && map[x - 1][y - 1] == 0){ return 0;}
-    if (x > 0 && map[x - 1][y] == 0){ return 0;}
-    if (x > 0 && y < SO_WIDTH - 1 && map[x - 1][y + 1] == 0){ return 0;}
-    if (x < SO_HEIGHT - 1 && y > 0 && map[x + 1][y - 1] == 0){ return 0;}
-    if (x < SO_HEIGHT - 1 && map[x + 1][y] == 0){ return 0;}
-    if (x < SO_HEIGHT - 1 && y < SO_WIDTH - 1 && map[x + 1][y + 1] == 0){ return 0;}
-    if (y > 0 &&  map[x][y-1] == 0){ return 0;}
-    if (y < SO_WIDTH - 1 && map[x][y + 1] == 0){ return 0;}
+    if (x > 0 && y > 0 && master_map[x - 1][y - 1] == 0){ return 0;}
+    if (x > 0 && master_map[x - 1][y] == 0){ return 0;}
+    if (x > 0 && y < SO_WIDTH - 1 && master_map[x - 1][y + 1] == 0){ return 0;}
+    if (x < SO_HEIGHT - 1 && y > 0 && master_map[x + 1][y - 1] == 0){ return 0;}
+    if (x < SO_HEIGHT - 1 && master_map[x + 1][y] == 0){ return 0;}
+    if (x < SO_HEIGHT - 1 && y < SO_WIDTH - 1 && master_map[x + 1][y + 1] == 0){ return 0;}
+    if (y > 0 &&  master_map[x][y-1] == 0){ return 0;}
+    if (y < SO_WIDTH - 1 && master_map[x][y + 1] == 0){ return 0;}
 
     return 1;
 }
 
 void shd_memory_generator(){
+    //shd_mem used to pass master_map values to source processes
+    shd_mem_to_source_id = shmget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH * sizeof(source_value_struct), IPC_CREAT | IPC_EXCL | 0666);
+    TEST_ERROR;
+    shd_mem_to_source = shmat(shd_mem_to_source_id, NULL, 0);
+    TEST_ERROR;
 
+    //shd_mem used to pass master_map values and timensec_map values to taxi processes
+    shd_mem_to_taxi_id = shmget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH * sizeof(taxi_value_struct), IPC_CREAT | IPC_EXCL | 0666);
+    TEST_ERROR;
+    shd_mem_to_taxi = shmat(shd_mem_to_taxi_id, NULL, 0);
+    TEST_ERROR;
+    
+    //shd_mem to return taxi stats
+    shd_mem_returned_stats_id = shmget(IPC_PRIVATE, sizeof(returned_stats), IPC_CREAT | IPC_EXCL | 0666);
+    TEST_ERROR;
+    shd_mem_returned_stats = shmat(shd_mem_returned_stats_id, NULL, 0);
+    TEST_ERROR;
+
+    //initialization of shd_mem structs values
+    shd_memory_initialization();
+}
+
+void shd_memory_initialization(){
+    int x, y, offset = 0;
+
+    shd_mem_returned_stats->trips_completed = 0;
+    shd_mem_returned_stats->longest_trip = 0;
+    shd_mem_returned_stats->slowest_trip = 0;
+    shd_mem_returned_stats->max_trips_completed = 0;
+
+    for(x = 0; x < SO_HEIGHT; x++){
+        for(y = 0; y < SO_WIDTH; y++){
+            (shd_mem_to_source + offset)->cell_value = master_map[x][y];
+            (shd_mem_to_taxi+offset)->cell_value = master_map[x][y];
+            (shd_mem_to_taxi+offset)->cell_timensec_value = master_timensec_map[x][y];
+            shd_mem_returned_stats->top_cells_map[x][y] = 0;
+            offset++;
+        }
+    }
+
+    shmctl(shd_mem_to_source_id, IPC_RMID, NULL);
+    shmctl(shd_mem_to_taxi_id, IPC_RMID, NULL);
+    shmctl(shd_mem_returned_stats_id, IPC_RMID, NULL);
 }
 
 void semaphore_generator(){
