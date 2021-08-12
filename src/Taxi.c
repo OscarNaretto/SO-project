@@ -20,12 +20,12 @@ int main(int argc, char const *argv[]){
 }
 
 void taxi_signal_actions(){
-    /* code */
+    struct sigaction abort;
 }
 
 void signal_handler(int signal){
     /* code */
-}ß
+}
 
 void set_maps(){
     int i, j;
@@ -63,48 +63,16 @@ void set_maps(){
     
     shmdt(/*shd_mem_taxi*/);
 }
-/* metodo sostitutivo movimento taxi 
- controllare se si può utilizzare 
-bool validMove(int fromRow, int fromCol, int toRow, int toCol)
-{
-    int i;
 
-    // Attempt to move to the same cell
-    if (fromRow == toRow && fromCol == toCol)
-        return false;
 
-    // Collision detection
-    if (fromRow == toRow) {
-        // Horizontal move
-        if (fromCol < toCol) {
-            // Move right
-            for (i = fromCol + 1; i <= toCol; ++i)
-                if (pieceAt(fromRow, i) != EMPTY)
-                    return false;
-        } else {
-            // Move left
-            for (i = fromCol - 1; i >= toCol; --i)
-                if (pieceAt(fromRow, i) != EMPTY)
-                    return false;
-        }
-    } else if (fromCol == toCol) {
-        // Vertical move
-        if (fromRow < toRow) {
-            // Move down
-            for (i = fromRow + 1; i <= toRow; ++i)
-                if (pieceAt(i, fromCol) != EMPTY)
-                    return false;
-        } else {
-            // Move up
-            for (i = fromRow - 1; i >= toRow; --i)
-                if (pieceAt(i, fromCol) != EMPTY)
-                    return false;
-        }
-    } else {
-        // Not a valid rook move (neither horizontal nor vertical)
-        return false;
-    }
+/*void look_for_passanger(){}*/
+/*int check_msg(int x, int y){} */
 
-    return true;
+int coordinate_is_acceptable(int x, int y){
+ if (x >= 0 && x < SO_HEIGHT && y >= 0 && y < SO_WIDTH){
+     if(map[x][y] != 0){
+         return 1;
+     }
+ }
+ return 0;
 }
-*/
