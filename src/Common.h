@@ -22,9 +22,6 @@
 #define SO_WIDTH 20
 #define SO_HEIGHT 10
 
-
-
-
 #define TEST_ERROR    if (errno) {fprintf(stderr, \
 					   "%s:%d: PID=%5d: Error %d (%s)\n",\
 					   __FILE__,\
@@ -34,5 +31,10 @@
 					   strerror(errno));exit(-1);}
 
 void allocation_error(char *file, char *data_structure);
+
+//semaphores
+void processes_sync(int sem_id){
+void shdmem_return_sem_reserve(int sem_id){
+void shdmem_return_sem_release(int sem_id){
 
 #endif

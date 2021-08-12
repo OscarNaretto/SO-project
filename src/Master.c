@@ -6,6 +6,9 @@ void read_parameters();
 void maps_generator();
 void master_map_initialization();
 int can_be_placed(int x, int y);
+void shd_memory_generator();
+void semaphore_generator();
+void msgqueue_generator();
 
 
 
@@ -25,12 +28,24 @@ int SO_INIT_REQUESTS_MAX  = -1;
 
 //maps
 int **master_map;
-int **SO_CAP_MAP;
-long int **SO_TIMENSEC_MAP;
+int **master_cap_map;
+long int **master_timensec_map;
+
+//semaphores
+union semun arg;
+int sem_sync_id; 
+int sem_cells_cap_id;
+
+//message queue
+int msgqueue_id; 
+
+
 
 
 int main(int argc, char *argv[]){
     setup();
+
+    //sync
 
     //execution
     
@@ -48,8 +63,11 @@ void setup(){
     maps_generator();
 
     //ipcs initialization
+    shd_memory_generator();
+    semaphore_generator();
+    msgqueue_generator();
 
-    //sources and taxis generation (move here source pid array and taxi pid array)
+    //sources and taxis process generation (move here source pid array and taxi pid array)
 }
 
 void read_parameters(){
@@ -152,29 +170,29 @@ void maps_generator(){
     master_map_initialization();
 
     //memory allocation of maximum cell capability
-    SO_CAP_MAP = (int **)malloc(SO_HEIGHT * sizeof(int *));
-    if (SO_CAP_MAP == NULL){ allocation_error("Master", "SO_CAP_MAP"); }
+    master_cap_map = (int **)malloc(SO_HEIGHT * sizeof(int *));
+    if (master_cap_map == NULL){ allocation_error("Master", "master_cap_map"); }
     for (i = 0; i < SO_HEIGHT; i++){
-        SO_CAP_MAP[i] = malloc(SO_WIDTH * sizeof(int));
-        if (SO_CAP_MAP[i] == NULL){
-            allocation_error("Master", "SO_CAP_MAP");
+        master_cap_map[i] = malloc(SO_WIDTH * sizeof(int));
+        if (master_cap_map[i] == NULL){
+            allocation_error("Master", "master_cap_map");
         } else {
             for(j = 0; j < SO_WIDTH; j++){
-                SO_CAP_MAP[i][j] = rand() % (SO_CAP_MAX + 1 - SO_CAP_MIN) + SO_CAP_MIN;
+                master_cap_map[i][j] = rand() % (SO_CAP_MAX + 1 - SO_CAP_MIN) + SO_CAP_MIN;
             }
         }        
     }
 
     //memory allocation of maximum cell waiting time
-    SO_TIMENSEC_MAP = (long int **)malloc(SO_HEIGHT * sizeof(long int *));
-    if (SO_TIMENSEC_MAP == NULL){ allocation_error("Master", "SO_TIMENSEC_MAP"); }
+    master_timensec_map = (long int **)malloc(SO_HEIGHT * sizeof(long int *));
+    if (master_timensec_map == NULL){ allocation_error("Master", "master_timensec_map"); }
     for (i = 0; i < SO_HEIGHT; i++){
-        SO_TIMENSEC_MAP[i] = malloc(SO_WIDTH * sizeof(long int));
-        if (SO_TIMENSEC_MAP[i] == NULL){
-            allocation_error("Master", "SO_TIMENSEC_MAP");
+        master_timensec_map[i] = malloc(SO_WIDTH * sizeof(long int));
+        if (master_timensec_map[i] == NULL){
+            allocation_error("Master", "master_timensec_map");
         } else {
             for (j = 0; j < SO_WIDTH; j++){
-                SO_TIMENSEC_MAP[i][j] = rand() % (SO_TIMENSEC_MAX + 1 - SO_TIMENSEC_MIN) + SO_TIMENSEC_MIN;
+                master_timensec_map[i][j] = rand() % (SO_TIMENSEC_MAX + 1 - SO_TIMENSEC_MIN) + SO_TIMENSEC_MIN;
             }
         }
     }
@@ -232,6 +250,40 @@ int can_be_placed(int x, int y){
     return 1;
 }
 
+void shd_memory_generator(){
+
+}
+
+void semaphore_generator(){
+    //semaphore set for each cell; stores cell capability; matrix as an array
+    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH, IPC_CREAT | IPC_EXCL| 0666);
+    TEST_ERROR;
+
+    for(int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
+        arg.val = master_cap_map[i / SO_WIDTH][i % SO_WIDTH];
+        semctl(sem_cells_cap_id, i, SETVAL, arg);
+        TEST_ERROR;
+    } 
+
+    //semaphore set used in order to sync processes and ipcs usage
+    sem_sync_id = semget(IPC_PRIVATE, 2, IPC_CREAT | IPC_EXCL | 0666);
+    TEST_ERROR;
+
+    //processes sync semaphore
+    arg.val = SO_SOURCES + SO_TAXI;
+    semctl(sem_sync_id, 0, SETVAL, arg);
+    TEST_ERROR;
+    
+    //returned values shd_memory sync semaphore
+    arg.val = 1;
+    semctl(sem_sync_id, 1, SETVAL, arg);
+    TEST_ERROR;
+}
+
+void msgqueue_generator(){
+    msgqueue_id = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0666);
+    TEST_ERROR;
+}
 
 
 
