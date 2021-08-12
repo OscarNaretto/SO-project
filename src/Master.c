@@ -205,7 +205,6 @@ void master_map_initialization(){
     //sources
     placed = 0;
     not_placed = 1;
-
     while (placed < SO_SOURCES){
         while (not_placed){
             x = rand() % SO_HEIGHT;
@@ -221,7 +220,6 @@ void master_map_initialization(){
 }
 
 int can_be_placed(int x, int y){ 
-    
     if (x > 0 && y > 0 && map[x - 1][y - 1] == 0){ return 0;}
     if (x > 0 && map[x - 1][y] == 0){ return 0;}
     if (x > 0 && y < SO_WIDTH - 1 && map[x - 1][y + 1] == 0){ return 0;}
