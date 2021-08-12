@@ -33,6 +33,6 @@
 					   errno,\
 					   strerror(errno));exit(-1);}
 
-void allocation_error(char *file, char *structure);
+void allocation_error(char *file, char *data_structure);
 
 #endif
