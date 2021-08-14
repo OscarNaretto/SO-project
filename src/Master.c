@@ -6,10 +6,14 @@ void read_parameters();
 void maps_generator();
 void master_map_initialization();
 int can_be_placed(int x, int y);
+void msgqueue_generator();
+void semaphore_generator();
 void shd_memory_generator();
 void shd_memory_initialization();
-void semaphore_generator();
-void msgqueue_generator();
+void source_processes_generator();
+void taxi_processes_generator();
+void taxi_processes_regenerator(pid_t to_regen);
+
 
 
 
@@ -32,6 +36,16 @@ int **master_map;
 int **master_cap_map;
 long int **master_timensec_map;
 
+//message queue
+int msgqueue_id; 
+
+//semaphores
+union semun arg;
+struct sembuf sops;
+
+int sem_cells_cap_id;
+int sem_sync_id; 
+
 //shared memory
 int shd_mem_to_source_id;
 int shd_mem_to_taxi_id; 
@@ -39,15 +53,9 @@ int shd_mem_returned_stats_id;
 source_value_struct *shd_mem_to_source;
 taxi_value_struct *shd_mem_to_taxi;
 
-//semaphores
-union semun arg;
-int sem_sync_id; 
-int sem_cells_cap_id;
-
-//message queue
-int msgqueue_id; 
-
-
+//processes
+pid_t *sources_pid_array;
+pid_t *taxis_pid_array;
 
 
 int main(int argc, char *argv[]){
@@ -71,11 +79,22 @@ void setup(){
     maps_generator();
 
     //ipcs initialization
-    shd_memory_generator();
-    semaphore_generator();
     msgqueue_generator();
+    semaphore_generator();
+    shd_memory_generator();
 
-    //sources and taxis process generation (move here source pid array and taxi pid array)
+    //sources and taxis process generation; pids are stored in two arrays
+    sources_pid_array = (pid_t *)malloc(SO_SOURCES * sizeof(pid_t));
+    for (int i = 0; i< SO_SOURCES; i++){
+        sources_pid_array[i] = 0;
+    }
+    source_processes_generator();
+
+    taxis_pid_array = (pid_t *)malloc(SO_TAXI * sizeof(pid_t));
+    for (int i = 0; i< SO_SOURCES; i++){
+        taxis_pid_array[i] = 0;
+    }
+    taxi_processes_generator();
 }
 
 void read_parameters(){
@@ -258,6 +277,37 @@ int can_be_placed(int x, int y){
     return 1;
 }
 
+void msgqueue_generator(){
+    msgqueue_id = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0666);
+    TEST_ERROR;
+}
+
+void semaphore_generator(){
+    //semaphore set for each cell; stores cell capability; matrix as an array
+    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH, IPC_CREAT | IPC_EXCL| 0666);
+    TEST_ERROR;
+
+    for(int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
+        arg.val = master_cap_map[i / SO_WIDTH][i % SO_WIDTH];
+        semctl(sem_cells_cap_id, i, SETVAL, arg);
+        TEST_ERROR;
+    } 
+
+    //semaphore set used in order to sync processes and ipcs usage
+    sem_sync_id = semget(IPC_PRIVATE, 2, IPC_CREAT | IPC_EXCL | 0666);
+    TEST_ERROR;
+
+    //processes sync semaphore
+    arg.val = SO_SOURCES + SO_TAXI;
+    semctl(sem_sync_id, 0, SETVAL, arg);
+    TEST_ERROR;
+    
+    //returned values shd_memory sync semaphore
+    arg.val = 1;
+    semctl(sem_sync_id, 1, SETVAL, arg);
+    TEST_ERROR;
+}
+
 void shd_memory_generator(){
     //shd_mem used to pass master_map values to source processes
     shd_mem_to_source_id = shmget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH * sizeof(source_value_struct), IPC_CREAT | IPC_EXCL | 0666);
@@ -304,38 +354,83 @@ void shd_memory_initialization(){
     shmctl(shd_mem_returned_stats_id, IPC_RMID, NULL);
 }
 
-void semaphore_generator(){
-    //semaphore set for each cell; stores cell capability; matrix as an array
-    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH, IPC_CREAT | IPC_EXCL| 0666);
-    TEST_ERROR;
+void source_processes_generator(){
+    int i = -1, x, y;
 
-    for(int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
-        arg.val = master_cap_map[i / SO_WIDTH][i % SO_WIDTH];
-        semctl(sem_cells_cap_id, i, SETVAL, arg);
-        TEST_ERROR;
-    } 
+    for (x = 0; x < SO_HEIGHT; x++){
+        for y = 0; y< SO_WIDTH; y++){
+            if (master_map[x][y] == 2){
+                i++;
+                switch(sources_pid_array[i] = fork()){
+                    case -1:
+                        printf("\nErrore nella fork dei sources\n");
+                        exit(EXIT_FAILURE);
+                        break;
+                    
+                    case 0:
+                        char* source_args[] = {
+                            "Source",
+                            (char)x,
+                            (char)y,
+                            (char)shd_mem_to_source_id,
+                            (char)sem_sync_id,
+                            (char)msgqueue_id,
+                            (char)SO_INIT_REQUESTS_MIN,
+                            (char)SO_INIT_REQUESTS_MAX,
+                            NULL
+                        };
 
-    //semaphore set used in order to sync processes and ipcs usage
-    sem_sync_id = semget(IPC_PRIVATE, 2, IPC_CREAT | IPC_EXCL | 0666);
-    TEST_ERROR;
+                        execve("bin/Source", source_args, NULL);
 
-    //processes sync semaphore
-    arg.val = SO_SOURCES + SO_TAXI;
-    semctl(sem_sync_id, 0, SETVAL, arg);
-    TEST_ERROR;
-    
-    //returned values shd_memory sync semaphore
-    arg.val = 1;
-    semctl(sem_sync_id, 1, SETVAL, arg);
-    TEST_ERROR;
+	                    fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+	                    exit(EXIT_FAILURE);
+                        break;
+                    
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+
+
+
+
 }
 
-void msgqueue_generator(){
-    msgqueue_id = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0666);
-    TEST_ERROR;
+void taxi_processes_generator(){
+    int i, x, y, generated;
+    srand(time(NULL));
+
+    for (i = 0; i < SO_TAXI; i++){
+        generated = 0;
+        while(!generated){
+            x = rand() % SO_HEIGHT;
+            y = rand() % SO_WIDTH;
+            if(map[x][y] != 0){
+                sops.sem_num = (x * SO_WIDTH) + y; 
+                sops.sem_op = -1;
+                sops.sem_flg = IPC_NOWAIT;
+                if(semop(sem_sync_id, &sops, 1) == -1){
+                    if(errno != EAGAIN && errno != EINTR){
+                        TEST_ERROR;
+                    }
+                }else{
+                    generated = 1;
+                }
+            }
+        }
+
+        //fork()
+        //case -1: error
+        //case 0: child
+        //default: parent (do_nothing)
+
+    }
 }
 
+void taxi_processes_regenerator(pid_t to_regen){
 
-
+}
 
     
