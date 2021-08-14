@@ -363,7 +363,7 @@ void source_processes_generator(){
                 i++;
                 switch(sources_pid_array[i] = fork()){
                     case -1:
-                        printf("\nErrore nella fork dei sources\n");
+                        fprintf(stderr,"Error #%03d: %s\n", errno, strerror(errno));
                         exit(EXIT_FAILURE);
                         break;
                     
@@ -372,9 +372,9 @@ void source_processes_generator(){
                             "Source",
                             (char)x,
                             (char)y,
-                            (char)shd_mem_to_source_id,
-                            (char)sem_sync_id,
                             (char)msgqueue_id,
+                            (char)sem_sync_id,
+                            (char)shd_mem_to_source_id,
                             (char)SO_INIT_REQUESTS_MIN,
                             (char)SO_INIT_REQUESTS_MAX,
                             NULL
@@ -415,22 +415,100 @@ void taxi_processes_generator(){
                     if(errno != EAGAIN && errno != EINTR){
                         TEST_ERROR;
                     }
-                }else{
+                } else {
                     generated = 1;
                 }
             }
         }
+        
+        switch(taxis_pid_array[i] = fork()){
+            case -1:
+                fprintf(stderr,"Error #%03d: %s\n", errno, strerror(errno));
+                exit(EXIT_FAILURE);
+                break;
+                    
+            case 0:
+                char* taxi_args[] = {
+                    "Taxi",
+                    (char)x,
+                    (char)y,
+                    (char)SO_TIMEOUT,
+                    (char)msgqueue_id,
+                    (char)sem_sync_id,
+                    (char)sem_cells_cap_id,
+                    (char)shd_mem_to_taxi_id,
+                    (char)shd_mem_returned_stats_id,
+                    NULL
+                };
 
-        //fork()
-        //case -1: error
-        //case 0: child
-        //default: parent (do_nothing)
+                execve("bin/Taxi", taxi_args, NULL);
 
+	            fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+	            exit(EXIT_FAILURE);
+                break;
+                    
+            default:
+                break;
+        }
     }
 }
 
 void taxi_processes_regenerator(pid_t to_regen){
+    int i, x, y, generated = 0; 
+    srand(time(NULL));
 
+    for(i = 0; i < SO_TAXI; i++){
+        if(taxis_pid_array[i] == to_regen){
+            break;
+        }  
+    }
+
+    while(!generated){
+        x = rand() % SO_HEIGHT;
+        y = rand() % SO_WIDTH;
+        if(map[x][y] != 0){
+            sops.sem_num = (x * SO_WIDTH) + y; 
+            sops.sem_op = -1;
+            sops.sem_flg = IPC_NOWAIT;
+            if(semop(sem_sync_id, &sops, 1) == -1){
+                if(errno != EAGAIN && errno != EINTR){
+                    TEST_ERROR;
+                }
+            } else {
+                generated = 1;
+            }
+        }
+    }
+
+    switch(taxis_pid_array[i] = fork()){
+        case -1:
+            fprintf(stderr,"Error #%03d: %s\n", errno, strerror(errno));
+            exit(EXIT_FAILURE);
+            break;
+                    
+        case 0:
+            char* taxi_args[] = {
+                "Taxi",
+                (char)x,
+                (char)y,
+                (char)SO_TIMEOUT,
+                (char)msgqueue_id,
+                (char)sem_sync_id,
+                (char)sem_cells_cap_id,
+                (char)shd_mem_to_taxi_id,
+                (char)shd_mem_returned_stats_id,
+                NULL
+            };
+
+            execve("bin/Taxi", taxi_args, NULL);
+
+	        fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+	        exit(EXIT_FAILURE);
+            break;
+                    
+        default:
+            break;
+    }
 }
 
     
