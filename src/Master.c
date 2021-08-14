@@ -13,6 +13,10 @@ void shd_memory_initialization();
 void source_processes_generator();
 void taxi_processes_generator();
 void taxi_processes_regenerator(pid_t to_regen);
+void master_signal_management();
+void master_handle_signal(int signal);
+//usr signal handler
+void run();
 
 
 
@@ -61,9 +65,15 @@ pid_t *taxis_pid_array;
 int main(int argc, char *argv[]){
     setup();
 
-    //sync
+    //syncing with taxi and sources processes
+    sops.sem_num = 1;
+    sops.sem_op = 0; 
+    sops.sem_flg = 0;
+    semop(sem_sync_id, &sops, 1);
 
-    //execution
+    //all the processes are generated and ready to run
+
+    run();
     
     //print_map
 
@@ -95,6 +105,8 @@ void setup(){
         taxis_pid_array[i] = 0;
     }
     taxi_processes_generator();
+
+    master_signal_management();
 }
 
 void read_parameters(){
@@ -511,4 +523,18 @@ void taxi_processes_regenerator(pid_t to_regen){
     }
 }
 
+master_signal_management(){
+    struct sigaction sa_alarm, sa_int; 
+
+}
+
+void run(){
+    //using a one sec alarm to print the map
+    alarm(1);
+
+    //collect stats from exit status of taxis
     
+    //print last map and final stats
+
+}
+  

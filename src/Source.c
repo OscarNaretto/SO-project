@@ -6,7 +6,7 @@ void source_set_maps();
 void source_call_taxi();
 
 int **source_map;
-sigset_t my_mask;
+sigset_t mask;
 
 int main(int argc, char *argv[]){
     /*Controllo argomentti passati con possibile exec
@@ -26,28 +26,30 @@ int main(int argc, char *argv[]){
 }
 
 void source_signal_actions(){
-    struct sigaction abort_taxi;
-    struct sigaction restart_source;
+    struct sigaction sa_alarm, sa_int;
     
-    abort_taxi.sa_handler = source_handle_signal;
-    abort_taxi.sa_flags = 0;
+    sa_alarm.sa_handler = source_handle_signal;
+    sa_alarm.sa_flags = 0;
     
-    restart_source.sa_handler = source_handle_signal; 
-    restart_source.sa_flags = SA_RESTART;
+    sa_int.sa_handler = source_handle_signal; 
+    sa_int.sa_flags = SA_RESTART;
 
-    sigaddset(&my_mask, SIGALRM);
-    sigaddset(&my_mask, SIGINT);
+    sigaddset(&mask, SIGALRM);
+    sigaddset(&mask, SIGINT);
 
-    abort_taxi.sa_mask = my_mask;
-    restart_source.sa_mask = my_mask;
+    sa_alarm.sa_mask = mask;
+    sa_int.sa_mask = mask;
 
-    sigaction(SIGINT, &abort_taxi, NULL);
-    sigaction(SIGALRM, &restart_source, NULL);
+    sigaction(SIGINT, &sa_alarm, NULL);
+    TEST_ERROR;
+
+    sigaction(SIGALRM, &sa_int, NULL);
+    TEST_ERROR;
 
 }
 
 void source_handle_signal(int signum){
-    sigprocmask(SIG_BLOCK, &my_mask, NULL);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
     switch (signum){
         case SIGALRM:
             //Gestire caso alarm
@@ -61,7 +63,7 @@ void source_handle_signal(int signum){
             printf("\nSegnale %d non gestito\n", signum);
             break;
     }
-    sigprocmask(SIG_UNBLOCK, &my_mask, NULL);
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
 }
 
 void source_set_maps(){
