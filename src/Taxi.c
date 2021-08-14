@@ -4,6 +4,8 @@
 int **taxi_map;
 long int **TAXI_TIMENSEC_MAP;
 
+sigset_t masked, /*all*/; 
+
 int main(int argc, char const *argv[]){
     if(argc != /*9*/){
         fprintf(stderr, "\n%s: %d. NUMERO DI PARAMETRI ERRATO\n", __FILE__, __LINE__);
@@ -20,11 +22,33 @@ int main(int argc, char const *argv[]){
 }
 
 void taxi_signal_actions(){
-    struct sigaction abort;
+    struct sigaction fail;
+    bzero(&fail, sizeof(fail));
+
+    sigaddset(SIGQUIT,&fail, NULL);
+    sigaddset(SIGINT,&fail; NULL);
+
+    fail.sa_mask = masked;
+    fail.sa_handler = signal_handler;
+
+    sigaction(SIGQUIT,&fail, NULL);
+    sigaction(SIGINT,&fail; NULL);
 }
 
 void signal_handler(int signal){
-    /* code */
+    sigprocmask(SIG_BLOCK, &masked, NULL);
+    switch (signal){
+    case SIGQUIT:
+        /* code */
+        break;
+    case SIGINT:
+        raise(SIGQUIT):
+        break;
+    default:
+        printf("\nSegnale %d non gestito\n", signal);
+        break;
+    }
+    sigprocmask(SIG_UNBLOCK, &masked, NULL)
 }
 
 void set_maps(){
