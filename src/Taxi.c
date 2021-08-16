@@ -4,15 +4,48 @@
 int **taxi_map;
 long int **TAXI_TIMENSEC_MAP;
 
-sigset_t masked, /*all*/; 
+int x, y;/*cordinate taxi*/
+int msgqueue_id,sem_sync_id,sem_cells_cap_id;
+
+sigset_t masked, all; 
+
+struct timespec timeout;
+
+taxi_map_struct *shd_mem_taxi; 
+taxi_returned_stats *shd_mem_taxi_returned_stats;
 
 int main(int argc, char const *argv[]){
-    if(argc != /*9*/){
+    if(argc != 9){
         fprintf(stderr, "\n%s: %d. NUMERO DI PARAMETRI ERRATO\n", __FILE__, __LINE__);
 		exit(EXIT_FAILURE_CUSTOM);
     }
 
-    /*code*/
+    taxi_signal_actions();
+    sigfillset(&all);
+
+    x = atoi(argv[1]); 
+    y = atoi(argv[2]);
+    
+    srand((x * SO_WIDTH) + y);
+
+    timeout.tv_sec = atoi(argv[3]);
+
+    msgqueue_id = atoi(argv[4]);
+    sem_sync_id = atoi(argv[5]);
+    sem_cells_cap_id = atoi(argv[6]);
+
+    shd_mem_taxi = shmat(atoi(argv[7]), NULL, 0);
+    if(shd_mem_taxi == (taxi_value_struct *)(-1)){
+        fprintf(stderr, "\n%s: %d. Impossibile agganciare la shd_mem \n", __FILE__, __LINE__);
+    }
+    set_maps();
+
+    shd_mem_taxi_returned_stats = shmat(atoi(argv[8]), NULL, 0);
+    if(shd_mem_taxi_returned_stats == (returned_stats *)(-1)){
+        fprintf(stderr, "\n%s: %d. Impossibile agganciare la shd_mem \n", __FILE__, __LINE__);
+    }
+    
+    process_sync(sem_sync_id);//passare set di semafori
 
     while (1) {
     /*cerca passeggero*/();
@@ -35,7 +68,7 @@ void taxi_signal_actions(){
     sigaction(SIGINT,&fail; NULL);
 }
 
-void signal_handler(int signal){
+void taxi_signal_handler(int signal){
     sigprocmask(SIG_BLOCK, &masked, NULL);
     switch (signal){
     case SIGQUIT:
