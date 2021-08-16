@@ -11,8 +11,8 @@ sigset_t masked, all;
 
 struct timespec timeout;
 
-taxi_map_struct *shd_mem_taxi; 
-taxi_returned_stats *shd_mem_taxi_returned_stats;
+taxi_value_struct *shd_mem_taxi; 
+returned_stats *shd_mem_taxi_returned_stats;
 
 int main(int argc, char const *argv[]){
     if(argc != 9){
@@ -48,7 +48,7 @@ int main(int argc, char const *argv[]){
     process_sync(sem_sync_id);//passare set di semafori
 
     while (1) {
-    /*cerca passeggero*/();
+    /*cerca passeggero*/;
     }
 
     return(-1);
