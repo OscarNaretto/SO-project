@@ -30,6 +30,8 @@
 					   errno,\
 					   strerror(errno));exit(-1);}
 
+#define MSG_LEN 128 /* 128 - sizeof(long) */
+
 //cell value passed to source process
 typedef struct {
     int cell_value;

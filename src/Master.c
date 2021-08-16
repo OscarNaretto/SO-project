@@ -370,7 +370,7 @@ void source_processes_generator(){
     int i = -1, x, y;
 
     for (x = 0; x < SO_HEIGHT; x++){
-        for y = 0; y< SO_WIDTH; y++){
+        for (y = 0; y< SO_WIDTH; y++){
             if (master_map[x][y] == 2){
                 i++;
                 switch(sources_pid_array[i] = fork()){
