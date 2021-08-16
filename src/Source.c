@@ -104,7 +104,7 @@ void source_handle_signal(int signum){
 }
 
 void source_set_maps(){
-    int i = 0, j, gap = 0;
+    int i = 0, j, offset = 0;
     source_map = (int **)malloc(SO_HEIGHT * sizeof(int *));
     
     if (source_map == NULL){allocation_error("Source", "source_map");}
@@ -113,11 +113,9 @@ void source_set_maps(){
         if (source_map[i] == NULL){
             allocation_error("Source", "source_map");
         }else{
-            for (i = 0; i < SO_HEIGHT; i++){
-                for(j = 0; j < SO_WIDTH; j++){
-                    source_map[i][j] = source_shd_mem[gap].cell_value;
-                    gap++;
-                }
+            for(j = 0; j < SO_WIDTH; j++){
+                source_map[i][j] = source_shd_mem[offset].cell_value;
+                offset++;
             }
         }
         i++;
@@ -126,13 +124,19 @@ void source_set_maps(){
 }
 
 void source_call_taxi(){
-    int destination_coor_x, destination_coor_y;
+    int X, Y, acceptable = 0;
     
-    destination_coor_x = rand() % SO_HEIGHT;
-    destination_coor_y = rand() % SO_WIDTH;
-    if(source_map[destination_coor_x][destination_coor_y] == 0 || (x == destination_coor_x && y == destination_coor_y)){
+    while (acceptable){
+        X = rand() % SO_HEIGHT;
+        Y = rand() % SO_WIDTH;
 
+        if(source_map[X][Y] != 0 && (x != X || y != Y)){
+            acceptable = 1;
+        }
     }
-
-    msgsnd(source_msgqueue_id, &buf_msg_snd, MSG_LEN, IPC_NOWAIT);
+    
+    //copia msg nel buffer
+    
+    msgsnd(source_msgqueue_id, &buf_msg_snd, MSG_LEN);
+    TEST_ERROR;
 }
