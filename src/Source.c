@@ -13,6 +13,7 @@ int x, y;
 int source_msgqueue_id;
 int source_sem_sync_id;
 int source_shd_mem_to_source_id;
+int SO_INIT_REQUESTS = -1;
 int SO_INIT_REQUESTS_MIN = -1;
 int SO_INIT_REQUESTS_MAX  = -1;
 
@@ -40,15 +41,21 @@ int main(int argc, char *argv[]){
     source_set_maps;
 
     processes_sync(source_sem_sync_id);
-
-    raise(SIGALRM);
+    
+    SO_INIT_REQUESTS = rand() % (SO_INIT_REQUESTS_MAX + 1 - SO_INIT_REQUESTS_MIN) + SO_INIT_REQUESTS_MIN;
+    while(SO_INIT_REQUESTS > 0){
+        raise(SIGALRM);
+        SO_INIT_REQUESTS--;
+        //pause();
+    }
+    raise(SIGINT);
 }
 
 void source_signal_actions(){
     struct sigaction sa_alarm, sa_int;
     
     sa_alarm.sa_handler = source_handle_signal;
-    sa_alarm.sa_flags = SA_RESTART;
+    sa_alarm.sa_flags = 0;
     
     sa_int.sa_handler = source_handle_signal; 
     sa_int.sa_flags = 0;
@@ -87,11 +94,11 @@ void source_handle_signal(int signum){
 }
 
 void source_set_maps(){
-    int i, j, gap = 0;
+    int i = 0, j, gap = 0;
     source_map = (int **)malloc(SO_HEIGHT * sizeof(int *));
     
     if (source_map == NULL){allocation_error("Source", "source_map");}
-    for (i = 0; i < SO_HEIGHT; i++){
+    while (i < SO_HEIGHT){
         source_map[i] = malloc(SO_WIDTH * sizeof(int));
         if (source_map[i] == NULL){
             allocation_error("Source", "source_map");
@@ -103,6 +110,7 @@ void source_set_maps(){
                 }
             }
         }
+        i++;
     }
     shmdt(source_shd_mem);
 }
@@ -112,8 +120,8 @@ void source_call_taxi(){
     
     destination_coor_x = rand() % SO_HEIGHT;
     destination_coor_y = rand() % SO_WIDTH;
-    while(source_map[destination_coor_x][destination_coor_y] == 0 || (x == destination_coor_x && y == destination_coor_y)){
-        
+    if(source_map[destination_coor_x][destination_coor_y] == 0 || (x == destination_coor_x && y == destination_coor_y)){
+
     }
 
     msgsnd(source_msgqueue_id, &buf_msg_snd, MSG_LEN, IPC_NOWAIT);
