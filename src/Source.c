@@ -13,6 +13,7 @@ int x, y;
 int source_msgqueue_id;
 int source_sem_sync_id;
 int source_shd_mem_to_source_id;
+int requests_ended = 0;
 int SO_INIT_REQUESTS = -1;
 int SO_INIT_REQUESTS_MIN = -1;
 int SO_INIT_REQUESTS_MAX  = -1;
@@ -43,12 +44,14 @@ int main(int argc, char *argv[]){
     processes_sync(source_sem_sync_id);
     
     SO_INIT_REQUESTS = rand() % (SO_INIT_REQUESTS_MAX + 1 - SO_INIT_REQUESTS_MIN) + SO_INIT_REQUESTS_MIN;
-    while(SO_INIT_REQUESTS > 0){
-        raise(SIGALRM);
-        SO_INIT_REQUESTS--;
-        //pause();
+    raise(SIGALRM);
+
+    /*while (1)
+    {
+        pause();
     }
-    raise(SIGINT);
+
+    return(-1);*/
 }
 
 void source_signal_actions(){
@@ -79,7 +82,14 @@ void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
             //Gestire caso alarm
-            source_call_taxi();
+            if(SO_INIT_REQUESTS == 0){
+                raise(SIGINT);
+            }else{
+                //Inserimento requests_ended per dirgli quando deve finire
+                SO_INIT_REQUESTS--;
+                source_call_taxi();
+                raise(SIGALRM);
+            }
             break;
         case SIGINT:
             //Gestire caso chiusura simulazione
