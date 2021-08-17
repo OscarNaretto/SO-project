@@ -15,9 +15,16 @@ sigset_t mask, all;
 struct timespec timeout;
 
 taxi_value_struct *shd_mem_taxi; 
-
 //semaphores
 struct sembuf sops[2];
+
+void taxi_signal_actions();
+void taxi_signal_handler(int signum);
+void taxi_signal_handler(int signum);
+void customer_research();
+int check_msg(int x, int y);
+int in_bounds(int x, int y);
+void taxi_ride();
 
 int main(int argc, char const *argv[]){
     if(argc != 9){
@@ -87,7 +94,7 @@ void taxi_signal_handler(int signum){
     }
 }
 
-void taxi_maps_generator(){
+void taxi_signal_handler(int signum){
     int i, j;
     int offset = 0;
 
