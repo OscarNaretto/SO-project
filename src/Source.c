@@ -44,6 +44,10 @@ int main(int argc, char *argv[]){
     processes_sync(source_sem_sync_id);
     
     SO_INIT_REQUESTS = rand() % (SO_INIT_REQUESTS_MAX + 1 - SO_INIT_REQUESTS_MIN) + SO_INIT_REQUESTS_MIN;
+    for(int i = 0; i < SO_INIT_REQUESTS; i++){
+        source_call_taxi();
+    }
+    
     raise(SIGALRM);
 
     /*while (1)
@@ -87,8 +91,6 @@ void source_handle_signal(int signum){
             }else{
                 //Inserimento requests_ended per dirgli quando deve finire
                 SO_INIT_REQUESTS--;
-                source_call_taxi();
-                raise(SIGALRM);
             }
             break;
         case SIGINT:
