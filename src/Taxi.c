@@ -7,7 +7,7 @@ long int **TAXI_TIMENSEC_MAP;
 int x, y;/*cordinate taxi*/
 int msgqueue_id,sem_sync_id,sem_cells_cap_id;
 
-sigset_t masked, all; 
+sigset_t mask, all; 
 
 struct timespec timeout;
 
@@ -25,17 +25,20 @@ int main(int argc, char const *argv[]){
 
     x = atoi(argv[1]); 
     y = atoi(argv[2]);
+    
+    //srand((x * SO_WIDTH) + y);
+
     timeout.tv_sec = atoi(argv[3]);
+
     msgqueue_id = atoi(argv[4]);
     sem_sync_id = atoi(argv[5]);
     sem_cells_cap_id = atoi(argv[6]);
+
     shd_mem_taxi = shmat(atoi(argv[7]), NULL, 0);
     if(shd_mem_taxi == (taxi_value_struct *)(-1)){
         fprintf(stderr, "\n%s: %d. Impossibile agganciare la shd_mem \n", __FILE__, __LINE__);
     }
-    //srand((x * SO_WIDTH) + y);
-
-    set_maps();
+    taxi_maps_generator();
 
     shd_mem_taxi_returned_stats = shmat(atoi(argv[8]), NULL, 0);
     if(shd_mem_taxi_returned_stats == (returned_stats *)(-1)){
@@ -52,21 +55,30 @@ int main(int argc, char const *argv[]){
 }
 
 void taxi_signal_actions(){
-    struct sigaction fail;
-    bzero(&fail, sizeof(fail));
+    struct sigaction sa_quit, sa_int;
+    sigemptyset(&mask);
+    
+    sigaddset(&mask,SIGQUIT);
+    sigaddset(&mask,SIGINT);
 
-    sigaddset(SIGQUIT,&fail, NULL);
-    sigaddset(SIGINT,&fail; NULL);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
 
-    fail.sa_mask = masked;
-    fail.sa_handler = signal_handler;
+    sa_quit.sa_mask = mask;
+    sa_int.sa_mask = mask;
 
-    sigaction(SIGQUIT,&fail, NULL);
-    sigaction(SIGINT,&fail; NULL);
+    sa_quit.sa_handler = taxi_signal_handler;
+    sa_int.sa_handler = taxi_signal_handler;
+
+    sa_int.sa_flags = 0;
+    sa_quit.sa_flags = 0;
+
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+    sigaction(SIGQUIT, &sa_quit, NULL);
+    sigaction(SIGINT, &sa_int, NULL);
 }
 
 void taxi_signal_handler(int signal){
-    sigprocmask(SIG_BLOCK, &masked, NULL);
     switch (signal){
     case SIGQUIT:
         /* code */
@@ -81,7 +93,7 @@ void taxi_signal_handler(int signal){
     sigprocmask(SIG_UNBLOCK, &masked, NULL)
 }
 
-void set_maps(){
+void taxi_maps_generator(){
     int i, j;
     int offset = 0;
 
@@ -109,17 +121,31 @@ void set_maps(){
 
     for ( i = 0; i < SO_HEIGHT i++){
        for ( j = 0; i < SO_WIDTH; j++){
-           taxi_map[i][j] = (/*shd_mem_taxi*/ + offset)-> cell_map_value; //guardare i nomi
-           TAXI_TIMENSEC_MAP[i][j] = (/*shd_mem_taxi*/ + offset)->cell_timensec_map_value;// guardare i nomi
+           taxi_map[i][j] = (shd_mem_taxi + offset)-> cell_map_value; //guardare i nomi
+           TAXI_TIMENSEC_MAP[i][j] = (shd_mem_taxi + offset)->cell_timensec_map_value;// guardare i nomi
            offset++;
        }    
     }
     
-    shmdt(/*shd_mem_taxi*/);
+    shmdt(shd_mem_taxi);
 }
 
 
 /*void look_for_passanger(){}*/
+void customer_research(){
+    int tracked_down = 0;
+
+    if(check_masg(x,y)){ tracked_down = 1;}
+    if(coordinate_is_acceptable(x-1,y-1) && check_msg()){tracked_down = 1;}
+    if(coordinate_is_acceptable() && check_msg()){tracked_down = 1;}
+    if(coordinate_is_acceptable() && check_msg()){tracked_down = 1;}
+    if(coordinate_is_acceptable() && check_msg()){tracked_down = 1;}
+    if(coordinate_is_acceptable() && check_msg()){tracked_down = 1;}
+    if(coordinate_is_acceptable() && check_msg()){tracked_down = 1;}
+    if(coordinate_is_acceptable() && check_msg()){tracked_down = 1;}
+    if(coordinate_is_acceptable() && check_msg()){tracked_down = 1;}
+    
+}
 /*int check_msg(int x, int y){} */
 
 int coordinate_is_acceptable(int x, int y){

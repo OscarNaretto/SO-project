@@ -69,7 +69,7 @@ void source_signal_actions(){
     sa_int.sa_mask = mask;
     
     sa_alarm.sa_handler = source_handle_signal;
-    sa_alarm.sa_flags = 0;
+    sa_alarm.sa_flags =  SA_RESTART;
     
     sa_int.sa_handler = source_handle_signal; 
     sa_int.sa_flags = 0;
