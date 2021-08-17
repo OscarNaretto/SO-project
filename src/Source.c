@@ -85,7 +85,7 @@ void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
             if(source_check_message()){
-
+                
             }
             //Gestire caso alarm
             /*if(SO_INIT_REQUESTS == 0){

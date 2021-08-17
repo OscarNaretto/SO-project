@@ -65,6 +65,13 @@ typedef struct{
 } returned_stats;
 returned_stats *shd_mem_returned_stats;
 
+union semun {
+    int val;                 /* Value for SETVAL */
+    struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
+    unsigned short  *array;  /* Array for GETALL, SETALL */
+    struct seminfo  *__buf;  /* Buffer for IPC_INFO*/
+};
+
 void allocation_error(char *file, char *data_structure);
 
 //semaphores

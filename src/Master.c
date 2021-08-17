@@ -3,6 +3,7 @@
 
 void setup();
 void read_parameters();
+void test_parameters();
 void master_maps_generator();
 void master_map_initialization();
 int can_be_placed(int x, int y);
@@ -384,7 +385,7 @@ void source_processes_generator(){
                         break;
                     
                     case 0:
-                        char* source_args[] = {
+                        char *source_args[] = {
                             "Source",
                             (char)x,
                             (char)y,
@@ -419,7 +420,7 @@ void taxi_processes_generator(){
         while(!generated){
             x = rand() % SO_HEIGHT;
             y = rand() % SO_WIDTH;
-            if(map[x][y] != 0){
+            if(master_map[x][y] != 0){
                 sops.sem_num = (x * SO_WIDTH) + y; 
                 sops.sem_op = -1;
                 sops.sem_flg = IPC_NOWAIT;
@@ -440,7 +441,7 @@ void taxi_processes_generator(){
                 break;
                     
             case 0:
-                char* taxi_args[] = {
+                char *taxi_args[] = {
                     "Taxi",
                     (char)x,
                     (char)y,
@@ -478,7 +479,7 @@ void taxi_processes_regenerator(pid_t to_regen){
     while(!generated){
         x = rand() % SO_HEIGHT;
         y = rand() % SO_WIDTH;
-        if(map[x][y] != 0){
+        if(master_map[x][y] != 0){
             sops.sem_num = (x * SO_WIDTH) + y; 
             sops.sem_op = -1;
             sops.sem_flg = IPC_NOWAIT;
@@ -523,7 +524,7 @@ void taxi_processes_regenerator(pid_t to_regen){
     }
 }
 
-master_signal_actions(){
+void master_signal_actions(){
     struct sigaction sa_alarm, sa_int;
 
     sigemptyset(&mask); 
