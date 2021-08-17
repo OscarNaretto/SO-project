@@ -3,7 +3,7 @@
 
 void setup();
 void read_parameters();
-void maps_generator();
+void master_maps_generator();
 void master_map_initialization();
 int can_be_placed(int x, int y);
 void msgqueue_generator();
@@ -72,7 +72,6 @@ int main(int argc, char *argv[]){
     semop(sem_sync_id, &sops, 1);
 
     //all the processes are generated and ready to run
-
     run();
     
     //print_map
@@ -86,7 +85,7 @@ void setup(){
     read_parameters();
 
     //maps generation
-    maps_generator();
+    master_maps_generator();
 
     //ipcs initialization
     msgqueue_generator();
@@ -188,7 +187,7 @@ void test_parameters(){
     }
 }
 
-void maps_generator(){
+void master_maps_generator(){
     int i, j;
 
     //memory allocation of the main map
@@ -404,10 +403,6 @@ void source_processes_generator(){
             }
         }
     }
-
-
-
-
 }
 
 void taxi_processes_generator(){
