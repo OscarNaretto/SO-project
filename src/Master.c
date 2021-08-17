@@ -13,8 +13,8 @@ void shd_memory_initialization();
 void source_processes_generator();
 void taxi_processes_generator();
 void taxi_processes_regenerator(pid_t to_regen);
-void master_signal_management();
-void master_handle_signal(int signal);
+void master_signal_actions();
+void master_handle_signal(int signum);
 //usr signal handler
 void run();
 
@@ -43,7 +43,6 @@ int msgqueue_id;
 //semaphores
 union semun arg;
 struct sembuf sops;
-
 int sem_cells_cap_id;
 int sem_sync_id; 
 
@@ -58,6 +57,12 @@ taxi_value_struct *shd_mem_to_taxi;
 pid_t *sources_pid_array;
 pid_t *taxis_pid_array;
 
+//signals
+sigset_t mask;
+
+int execution_time = 0;
+
+
 int main(int argc, char *argv[]){
     setup();
 
@@ -70,7 +75,7 @@ int main(int argc, char *argv[]){
     //all the processes are generated and ready to run
     run();
     
-    //print_map
+    //print_master_map
 
     //free malloc and ipcs
 }
@@ -101,7 +106,7 @@ void setup(){
     }
     taxi_processes_generator();
 
-    master_signal_management();
+    master_signal_actions();
 }
 
 void read_parameters(){
@@ -514,18 +519,88 @@ void taxi_processes_regenerator(pid_t to_regen){
     }
 }
 
-master_signal_management(){
-    struct sigaction sa_alarm, sa_int; 
+master_signal_actions(){
+    struct sigaction sa_alarm, sa_int;
+
+    sigemptyset(&mask); 
+    sigaddset(&mask, SIGALRM);
+    sigaddset(&mask, SIGINT);
+
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+    
+    sa_alarm.sa_mask = mask;
+    sa_int.sa_mask = mask;
+
+    sa_alarm.sa_handler = master_handle_signal;
+    sa_alarm.sa_flags =  0;
+    
+    sa_int.sa_handler = master_handle_signal; 
+    sa_int.sa_flags = 0;
+
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+    
+    sigaction(SIGINT, &sa_int, NULL);
+    sigaction(SIGALRM, &sa_alarm, NULL);
+}
+
+void master_handle_signal(int signum){
+    switch (signum){
+        case SIGALRM:
+            execution_time++;
+            print_master_map();
+            if(execution_time < SO_DURATION){
+                alarm(1);
+            } else {
+                raise(SIGINT);
+            }
+            break;
+        case SIGINT:
+            printf("\nChiudo i processi attivi\n");
+            exit_simulation();
+            alarm(0);
+            break;
+        default:
+            break;
+    }
+}
+
+void print_master_map(){
+    printf("\nSecondo: %d\n", execution_time);
+
 
 }
 
+void exit_simulation(){
+    int i;
+    for (i = 0; i < SO_TAXI; i++){
+        if (taxis_pid_array[i] > 0){
+            kill(taxis_pid_array[i], SIGINT);
+        }
+    }
+
+    for (i = 0; i < SO_SOURCES; i++){
+        if (sources_pid_array[i] > 0){
+            kill(sources_pid_array[i], SIGINT);
+        }
+    }
+}
+
 void run(){
+    pid_t terminatedPid;
+    int status;
     //using a one sec alarm to print the map
     alarm(1);
 
+    
+
     //collect stats from exit status of taxis
+    while ((terminatedPid = wait(&status)) > 0){
+        //check exit macros. working on taxis first
+    }
     
     //print last map and final stats
-
+    print_master_map();
+    print_stats();
+    //so-top-cells
 }
   
