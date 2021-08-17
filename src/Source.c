@@ -44,6 +44,10 @@ int main(int argc, char *argv[]){
     processes_sync(source_sem_sync_id);
     
     SO_INIT_REQUESTS = rand() % (SO_INIT_REQUESTS_MAX + 1 - SO_INIT_REQUESTS_MIN) + SO_INIT_REQUESTS_MIN;
+    for(int i = 0; i < SO_INIT_REQUESTS; i++){
+        source_call_taxi();
+    }
+    
     raise(SIGALRM);
 
     /*while (1)
@@ -87,8 +91,6 @@ void source_handle_signal(int signum){
             }else{
                 //Inserimento requests_ended per dirgli quando deve finire
                 SO_INIT_REQUESTS--;
-                source_call_taxi();
-                raise(SIGALRM);
             }
             break;
         case SIGINT:
@@ -124,7 +126,7 @@ void source_set_maps(){
 
 void source_call_taxi(){
     int X, Y, acceptable = 0;
-    
+    int type_msg;
     while (acceptable){
         X = rand() % SO_HEIGHT;
         Y = rand() % SO_WIDTH;
@@ -135,7 +137,14 @@ void source_call_taxi(){
     }
     
     //copia msg nel buffer
+    if((type_msg = (x * SO_WIDTH) + y + 1) > 0){
+        buf_msg_snd.mtype = type_msg;
+    }else{
+        printf("ERRORE VALORE PARAMETRO MTYPE, DEVE ESSERE POSITIVO\n");
+        return;
+    }
+    sprintf(buf_msg_snd.mtext, "%d", (X * SO_WIDTH) + Y);
 
-    msgsnd(source_msgqueue_id, &buf_msg_snd, MSG_LEN);
+    msgsnd(source_msgqueue_id, &buf_msg_snd, MSG_LEN, IPC_NOWAIT);
     TEST_ERROR;
 }
