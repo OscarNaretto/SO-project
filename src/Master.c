@@ -18,9 +18,6 @@ void master_handle_signal(int signal);
 //usr signal handler
 void run();
 
-
-
-
 //parameters
 int SO_HOLES = -1;
 int SO_TOP_CELLS = -1;
@@ -61,15 +58,14 @@ taxi_value_struct *shd_mem_to_taxi;
 pid_t *sources_pid_array;
 pid_t *taxis_pid_array;
 
-
 int main(int argc, char *argv[]){
     setup();
 
     //syncing with taxi and sources processes
-    sops.sem_num = 1;
+    sops.sem_num = 0;
     sops.sem_op = 0; 
     sops.sem_flg = 0;
-    semop(sem_sync_id, &sops, 1);
+    semop(sem_sync_id, &sops, 0);
 
     //all the processes are generated and ready to run
     run();

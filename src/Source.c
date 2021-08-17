@@ -56,6 +56,15 @@ int main(int argc, char *argv[]){
 
 void source_signal_actions(){
     struct sigaction sa_alarm, sa_int;
+
+    sigemptyset(&mask); 
+    sigaddset(&mask, SIGALRM);
+    sigaddset(&mask, SIGINT);
+
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+    
+    sa_alarm.sa_mask = mask;
+    sa_int.sa_mask = mask;
     
     sa_alarm.sa_handler = source_handle_signal;
     sa_alarm.sa_flags = 0;
@@ -63,22 +72,13 @@ void source_signal_actions(){
     sa_int.sa_handler = source_handle_signal; 
     sa_int.sa_flags = 0;
 
-    sigaddset(&mask, SIGALRM);
-    sigaddset(&mask, SIGINT);
-
-    sa_alarm.sa_mask = mask;
-    sa_int.sa_mask = mask;
-
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+    
     sigaction(SIGINT, &sa_int, NULL);
-    TEST_ERROR;
-
     sigaction(SIGALRM, &sa_alarm, NULL);
-    TEST_ERROR;
-
 }
 
 void source_handle_signal(int signum){
-    sigprocmask(SIG_BLOCK, &mask, NULL);
     switch (signum){
         case SIGALRM:
             //Gestire caso alarm
@@ -100,7 +100,6 @@ void source_handle_signal(int signum){
             printf("\nSegnale %d non gestito\n", signum);
             break;
     }
-    sigprocmask(SIG_UNBLOCK, &mask, NULL);
 }
 
 void source_set_maps(){
@@ -136,7 +135,7 @@ void source_call_taxi(){
     }
     
     //copia msg nel buffer
-    
+
     msgsnd(source_msgqueue_id, &buf_msg_snd, MSG_LEN);
     TEST_ERROR;
 }
