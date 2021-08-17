@@ -4,12 +4,13 @@ void source_signal_actions();
 void source_handle_signal(int signum);
 void source_set_maps();
 void source_call_taxi();
-void source_check_message();
+int source_check_message();
 
 int **source_map;
 sigset_t mask;
 source_value_struct *source_shd_mem;
 int x, y;
+int X, Y;
 int source_msgqueue_id;
 int source_sem_sync_id;
 int source_shd_mem_to_source_id;
@@ -142,14 +143,14 @@ void source_call_taxi(){
         buf_msg_snd.mtype = type_msg;
     }else{
         fprintf(stderr,"ERRORE VALORE PARAMETRO MTYPE, DEVE ESSERE POSITIVO\n");
-        return(-1);
+        return;
     }
     sprintf(buf_msg_snd.mtext, "%d", (X * SO_WIDTH) + Y);
     msgsnd(source_msgqueue_id, &buf_msg_snd, MSG_LEN, IPC_NOWAIT);
     TEST_ERROR;
 }
 
-void source_check_message(){
+int source_check_message(){
     int num_bytes;
 
     //DA RIVEDERE E COMPLETARE
@@ -160,6 +161,6 @@ void source_check_message(){
         return 1;
     } else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
-        return 0;
     }
+    return 0;
 }

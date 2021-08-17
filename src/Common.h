@@ -35,7 +35,7 @@
 
 #define MSG_LEN 128 /* 128 - sizeof(long) */
 
-//Struttura per i messaggi
+//Struttura del buffer per i messaggi
 struct msgbuf{
 	long mtype;
 	char mtext[MSG_LEN];
@@ -68,8 +68,8 @@ returned_stats *shd_mem_returned_stats;
 void allocation_error(char *file, char *data_structure);
 
 //semaphores
-void processes_sync(int sem_id){
-void shdmem_return_sem_reserve(int sem_id){
-void shdmem_return_sem_release(int sem_id){
+void processes_sync(int sem_id);
+void shdmem_return_sem_reserve(int sem_id);
+void shdmem_return_sem_release(int sem_id);
 
 #endif
