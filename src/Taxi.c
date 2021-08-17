@@ -8,7 +8,7 @@ int x, y;/*cordinate taxi*/
 int X, Y;
 int msgqueue_id,sem_sync_id,sem_cells_cap_id;
 
-
+int completed_trips = 0;
 
 sigset_t mask, all; 
 
@@ -74,12 +74,12 @@ void taxi_signal_actions(){
 void taxi_signal_handler(int signum){
     switch (signum){
     case SIGINT:
-        //stats
+        //stats     
         sops[0].sem_num = (x * SO_WIDTH) + y; 
         sops[0].sem_op = 1;
         semop(sem_cells_cap_id, sops, 1);
         //malloc free
-        exit(0);
+        exit(TAXI_ABORTED);
         break;
     default:
         printf("\nSegnale %d non gestito\n", signum);
@@ -209,12 +209,7 @@ void taxi_ride(){
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
                     //over timeout
-                    sops[0].sem_num = (x * SO_WIDTH) + y; 
-                    sops[0].sem_op = 1;
-                    semop(sem_cells_cap_id, sops, 1);
-                    //stats
-                    //malloc free
-                    exit(TAXI_ABORTED);
+                    raise(SIGINT);
                 } else if(errno != EINTR && errno != EAGAIN){
                     TEST_ERROR;
                 } else {

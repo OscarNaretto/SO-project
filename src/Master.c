@@ -60,7 +60,11 @@ pid_t *taxis_pid_array;
 //signals
 sigset_t mask;
 
+//stats
 int execution_time = 0;
+int completed_trips = 0;
+int unresolved_trips = 0; //SO_SOURCE output requests - completed trips? tbd
+int aborted_trips = 0;
 
 
 int main(int argc, char *argv[]){
@@ -592,16 +596,19 @@ void run(){
     //using a one sec alarm to print the map
     alarm(1);
 
-    
-
     //collect stats from exit status of taxis
     while ((terminatedPid = wait(&status)) > 0){
-        //check exit macros. working on taxis first
+        if(WEXITSTATUS(status) == TAXI_ABORTED && execution_time < SO_DURATION){
+            aborted_trips++;
+            taxi_processes_regenerator(terminatedPid);
+        } else if (WEXITSTATUS(status) == REPLACE_TAXI){
+            taxi_processes_regenerator(terminatedPid);
+        } 
     }
     
     //print last map and final stats
     print_master_map();
-    print_stats();
     //so-top-cells
+    print_stats();
 }
   
