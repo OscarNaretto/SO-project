@@ -560,6 +560,7 @@ void master_handle_signal(int signum){
             alarm(0);
             break;
         default:
+            printf("\nSegnale %d non gestito\n", signum);
             break;
     }
 }

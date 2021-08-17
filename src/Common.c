@@ -7,7 +7,7 @@ void allocation_error(char *file, char *data_structure){
 
 void processes_sync(int sem_id){
     struct sembuf sops;
-    int sem_val = semctl(sem_id, 1, GETVAL); 
+    /*int sem_val = semctl(sem_id, 1, GETVAL); 
     if(sem_val > 0){ 
         sops.sem_num = 0; 
         sops.sem_op = -1; 
@@ -20,7 +20,18 @@ void processes_sync(int sem_id){
         sops.sem_flg = 0;
         semop(sem_id, &sops, 1);
         TEST_ERROR;
-    }
+    }*/
+    sops.sem_num = 0; 
+    sops.sem_op = -1; 
+    sops.sem_flg = 0;
+    semop(sem_id, &sops, 1);
+    TEST_ERROR;
+        
+    sops.sem_num = 0;
+    sops.sem_op = 0; 
+    sops.sem_flg = 0;
+    semop(sem_id, &sops, 1);
+    TEST_ERROR;
 }
 
 void shdmem_return_sem_reserve(int sem_id){

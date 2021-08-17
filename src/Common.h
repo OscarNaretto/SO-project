@@ -21,6 +21,9 @@
 
 #define SO_WIDTH 20
 #define SO_HEIGHT 10
+#define REPLACE_TAXI 11
+#define TAXI_ABORTED 12
+
 
 #define TEST_ERROR    if (errno) {fprintf(stderr, \
 					   "%s:%d: PID=%5d: Error %d (%s)\n",\
