@@ -25,19 +25,16 @@ int main(int argc, char const *argv[]){
 
     x = atoi(argv[1]); 
     y = atoi(argv[2]);
-    
-    srand((x * SO_WIDTH) + y);
-
     timeout.tv_sec = atoi(argv[3]);
-
     msgqueue_id = atoi(argv[4]);
     sem_sync_id = atoi(argv[5]);
     sem_cells_cap_id = atoi(argv[6]);
-
     shd_mem_taxi = shmat(atoi(argv[7]), NULL, 0);
     if(shd_mem_taxi == (taxi_value_struct *)(-1)){
         fprintf(stderr, "\n%s: %d. Impossibile agganciare la shd_mem \n", __FILE__, __LINE__);
     }
+    //srand((x * SO_WIDTH) + y);
+
     set_maps();
 
     shd_mem_taxi_returned_stats = shmat(atoi(argv[8]), NULL, 0);

@@ -3,7 +3,7 @@
 
 void setup();
 void read_parameters();
-void maps_generator();
+void master_maps_generator();
 void master_map_initialization();
 int can_be_placed(int x, int y);
 void msgqueue_generator();
@@ -17,9 +17,6 @@ void master_signal_management();
 void master_handle_signal(int signal);
 //usr signal handler
 void run();
-
-
-
 
 //parameters
 int SO_HOLES = -1;
@@ -61,18 +58,16 @@ taxi_value_struct *shd_mem_to_taxi;
 pid_t *sources_pid_array;
 pid_t *taxis_pid_array;
 
-
 int main(int argc, char *argv[]){
     setup();
 
     //syncing with taxi and sources processes
-    sops.sem_num = 1;
+    sops.sem_num = 0;
     sops.sem_op = 0; 
     sops.sem_flg = 0;
-    semop(sem_sync_id, &sops, 1);
+    semop(sem_sync_id, &sops, 0);
 
     //all the processes are generated and ready to run
-
     run();
     
     //print_map
@@ -86,7 +81,7 @@ void setup(){
     read_parameters();
 
     //maps generation
-    maps_generator();
+    master_maps_generator();
 
     //ipcs initialization
     msgqueue_generator();
@@ -188,7 +183,7 @@ void test_parameters(){
     }
 }
 
-void maps_generator(){
+void master_maps_generator(){
     int i, j;
 
     //memory allocation of the main map
@@ -404,10 +399,6 @@ void source_processes_generator(){
             }
         }
     }
-
-
-
-
 }
 
 void taxi_processes_generator(){
