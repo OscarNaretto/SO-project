@@ -35,6 +35,12 @@
 
 #define MSG_LEN 128 /* 128 - sizeof(long) */
 
+//Struttura per i messaggi
+struct msgbuf{
+	long mtype;
+	char mtext[MSG_LEN];
+}buf_msg_snd;
+
 //cell value passed to source process
 typedef struct {
     int cell_value;

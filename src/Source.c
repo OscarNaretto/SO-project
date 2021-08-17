@@ -4,11 +4,11 @@ void source_signal_actions();
 void source_handle_signal(int signum);
 void source_set_maps();
 void source_call_taxi();
+void source_check_message();
 
 int **source_map;
 sigset_t mask;
 source_value_struct *source_shd_mem;
-struct msgbuf buf_msg_snd;
 int x, y;
 int source_msgqueue_id;
 int source_sem_sync_id;
@@ -53,9 +53,7 @@ int main(int argc, char *argv[]){
     /*while (1)
     {
         pause();
-    }
-
-    return(-1);*/
+    }*/
 }
 
 void source_signal_actions(){
@@ -85,18 +83,21 @@ void source_signal_actions(){
 void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
+            if(source_check_message()){
+
+            }
             //Gestire caso alarm
-            if(SO_INIT_REQUESTS == 0){
+            /*if(SO_INIT_REQUESTS == 0){
                 raise(SIGINT);
             }else{
                 //Inserimento requests_ended per dirgli quando deve finire
                 SO_INIT_REQUESTS--;
-            }
+            }*/
             break;
         case SIGINT:
             //Gestire caso chiusura simulazione
             alarm(0);
-            exit(0);
+            exit(SO_INIT_REQUESTS);
             break;
         default:
             printf("\nSegnale %d non gestito\n", signum);
@@ -140,11 +141,25 @@ void source_call_taxi(){
     if((type_msg = (x * SO_WIDTH) + y + 1) > 0){
         buf_msg_snd.mtype = type_msg;
     }else{
-        printf("ERRORE VALORE PARAMETRO MTYPE, DEVE ESSERE POSITIVO\n");
-        return;
+        fprintf(stderr,"ERRORE VALORE PARAMETRO MTYPE, DEVE ESSERE POSITIVO\n");
+        return(-1);
     }
     sprintf(buf_msg_snd.mtext, "%d", (X * SO_WIDTH) + Y);
-
     msgsnd(source_msgqueue_id, &buf_msg_snd, MSG_LEN, IPC_NOWAIT);
     TEST_ERROR;
+}
+
+void source_check_message(){
+    int num_bytes;
+
+    //DA RIVEDERE E COMPLETARE
+    num_bytes = msgrcv(source_msgqueue_id, &buf_msg_snd, MSG_LEN, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
+    if (num_bytes > 0){
+        X = atoi(buf_msg_snd.mtext) / SO_WIDTH;
+        Y = atoi(buf_msg_snd.mtext) % SO_WIDTH;
+        return 1;
+    } else if (num_bytes <= 0 && errno!=ENOMSG){
+        printf("Errore durante la lettura del messaggio: %d", errno);
+        return 0;
+    }
 }
