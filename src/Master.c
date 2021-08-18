@@ -1,24 +1,6 @@
 #include "Common.h"
 #define PARAMETERS "./ParametersLarge.txt"
 
-void setup();
-void read_parameters();
-void test_parameters();
-void master_maps_generator();
-void master_map_initialization();
-int can_be_placed(int x, int y);
-void msgqueue_generator();
-void semaphore_generator();
-void shd_memory_generator();
-void shd_memory_initialization();
-void source_processes_generator();
-void taxi_processes_generator();
-void taxi_processes_regenerator(pid_t to_regen);
-void master_signal_actions();
-void master_handle_signal(int signum);
-//usr signal handler
-void run();
-
 //parameters
 int SO_HOLES = -1;
 int SO_TOP_CELLS = -1;
@@ -67,6 +49,23 @@ int completed_trips = 0;
 int unresolved_trips = 0; //SO_SOURCE output requests - completed trips? tbd
 int aborted_trips = 0;
 
+void setup();
+void read_parameters();
+void test_parameters();
+void master_maps_generator();
+void master_map_initialization();
+int can_be_placed(int x, int y);
+void msgqueue_generator();
+void semaphore_generator();
+void shd_memory_generator();
+void shd_memory_initialization();
+void source_processes_generator();
+void taxi_processes_generator();
+void taxi_processes_regenerator(pid_t to_regen);
+void master_signal_actions();
+void master_handle_signal(int signum);
+//usr signal handler
+void run();
 
 int main(int argc, char *argv[]){
     setup();

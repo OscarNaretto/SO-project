@@ -1,11 +1,5 @@
 #include "Common.h"
 
-void source_signal_actions();
-void source_handle_signal(int signum);
-void source_set_maps();
-void source_call_taxi();
-int source_check_message();
-
 int **source_map;
 sigset_t mask;
 source_value_struct *source_shd_mem;
@@ -17,6 +11,12 @@ int source_shd_mem_to_source_id;
 int SO_INIT_REQUESTS = -1;
 int SO_INIT_REQUESTS_MIN = -1;
 int SO_INIT_REQUESTS_MAX  = -1;
+
+void source_signal_actions();
+void source_handle_signal(int signum);
+void source_set_maps();
+void source_call_taxi();
+int source_check_message();
 
 int main(int argc, char *argv[]){
     if(argc != 9){
