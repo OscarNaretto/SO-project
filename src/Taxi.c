@@ -20,7 +20,7 @@ struct sembuf sops[2];
 
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
-void taxi_signal_handler(int signum);
+void taxi_set_maps();
 void customer_research();
 int check_msg(int x, int y);
 int in_bounds(int x, int y);
@@ -94,7 +94,7 @@ void taxi_signal_handler(int signum){
     }
 }
 
-void taxi_signal_handler(int signum){
+void taxi_set_maps(){
     int i, j;
     int offset = 0;
 
@@ -122,8 +122,8 @@ void taxi_signal_handler(int signum){
 
     for ( i = 0; i < SO_HEIGHT; i++){
        for ( j = 0; i < SO_WIDTH; j++){
-           taxi_map[i][j] = (shd_mem_taxi + offset)-> cell_map_value; //guardare i nomi
-           taxi_timensec_map[i][j] = (shd_mem_taxi + offset)->cell_timensec_map_value;// guardare i nomi
+           taxi_map[i][j] = (shd_mem_taxi + offset)-> cell_value; 
+           taxi_timensec_map[i][j] = (shd_mem_taxi + offset)->cell_timensec_value;
            offset++;
        }    
     }
@@ -236,7 +236,7 @@ void taxi_ride(){
                     }
                 }
             } else {
-                shd_mem_returned_stats->so_top_cells_map[x][y]++;
+                shd_mem_returned_stats->top_cells_map[x][y]++;
                 trip_time += taxi_timensec_map[x][y];
                 timer.tv_nsec = taxi_timensec_map[x][y];
                 crossed_cells++;
