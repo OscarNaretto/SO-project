@@ -14,7 +14,6 @@ int X, Y;
 int source_msgqueue_id;
 int source_sem_sync_id;
 int source_shd_mem_to_source_id;
-int requests_ended = 0;
 int SO_INIT_REQUESTS = -1;
 int SO_INIT_REQUESTS_MIN = -1;
 int SO_INIT_REQUESTS_MAX  = -1;
@@ -85,19 +84,18 @@ void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
             if(source_check_message()){
-                
-            }
-            //Gestire caso alarm
-            /*if(SO_INIT_REQUESTS == 0){
-                raise(SIGINT);
+                alarm(5);
             }else{
-                //Inserimento requests_ended per dirgli quando deve finire
                 SO_INIT_REQUESTS--;
-            }*/
+            }
+            if(SO_INIT_REQUESTS == 0){
+                raise(SIGINT);
+            }
             break;
         case SIGINT:
             //Gestire caso chiusura simulazione
             alarm(0);
+            //free memoria source
             exit(SO_INIT_REQUESTS);
             break;
         default:

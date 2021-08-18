@@ -120,7 +120,7 @@ void taxi_signal_handler(int signum){
        }
     }
 
-    for ( i = 0; i < SO_HEIGHT i++){
+    for ( i = 0; i < SO_HEIGHT; i++){
        for ( j = 0; i < SO_WIDTH; j++){
            taxi_map[i][j] = (shd_mem_taxi + offset)-> cell_map_value; //guardare i nomi
            taxi_timensec_map[i][j] = (shd_mem_taxi + offset)->cell_timensec_map_value;// guardare i nomi
@@ -167,7 +167,7 @@ int check_msg(int x, int y){
 
 int in_bounds(int x, int y){
     if (x >= 0 && x < SO_HEIGHT && y >= 0 && y < SO_WIDTH){
-        if(map[x][y] != 0){
+        if(taxi_map[x][y] != 0){
             return 1;
         }
     }
@@ -187,24 +187,24 @@ void taxi_ride(){
     while(!arrived){
         sops[0].sem_num = (x * SO_WIDTH) + y;
         
-        if (y == y_dest && x == x_dest){
+        if (y == Y && x == X){
             arrived = 1;
-        } else if (x < x_dest){
+        } else if (x < X){
             if (coordinate_is_acceptable(x + 1, y)){
                 x++;
                 mov_choice = 0;
             }
-        } else if (x > x_dest){
+        } else if (x > X){
             if (coordinate_is_acceptable(x - 1, y)){
                 x--;
                 mov_choice = 1;
             }
-        } else if (y < y_dest){
+        } else if (y < Y){
             if (coordinate_is_acceptable(x, y + 1)){
                 y++;
                 mov_choice = 2;
             }
-        } else if (y > y_dest){
+        } else if (y > Y){
             if (coordinate_is_acceptable(x, y - 1)){
                 y--;
                 mov_choice = 3;
