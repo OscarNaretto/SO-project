@@ -83,6 +83,9 @@ void taxi_signal_handler(int signum){
         sops[0].sem_op = 1;
         semop(sem_cells_cap_id, sops, 1);
         //malloc free
+        free_up_memory_of_taxi_map(taxi_map);
+        free_up_memory_of_taxi_timensec_map(taxi_timensec_map);
+        //
         exit(TAXI_ABORTED);
         break;
     default:
@@ -126,6 +129,20 @@ void taxi_maps_generator(){
     }
     
     shmdt(shd_mem_taxi);
+}
+
+void free_up_memory_of_taxi_map(int **taxi_map,){
+    for (int i = 0; i < SO_HEIGHT; i++){
+        free(tax_map[i]);
+    }
+    free(taxi_map);
+}
+
+void free_up_memory_of_taxi_timensec_map(**taxi_timensec_map){
+    for (int i = 0; i < SO_HEIGHT; i++){
+        free(taxi_timensec_map[i]);
+    }
+    free(taxi_timensec_map);
 }
 
 void customer_research(){
@@ -248,4 +265,11 @@ void taxi_ride(){
         shd_mem_returned_stats->pid_slowest_trip = getpid();
         shdmem_return_sem_release(sem_sync_id);
     } 
+}
+
+void travel_information(){
+    shdmem_return_sem_reserve(sem_sync_id);
+    shd_mem_returned_stats->max_trips_completed = shd_mem_returned_stats->max_trips_completed + shd_mem_returned_stats->trips_completed;
+    /*code*/
+    shdmem_return_sem_release(sem_sync_id);
 }
