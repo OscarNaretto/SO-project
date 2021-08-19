@@ -40,9 +40,6 @@ taxi_value_struct *shd_mem_to_taxi;
 pid_t *sources_pid_array;
 pid_t *taxis_pid_array;
 
-//signals
-sigset_t mask;
-
 //stats
 int execution_time = 0;
 int total_requests = 0;
@@ -65,8 +62,10 @@ void taxi_processes_generator();
 void taxi_processes_regenerator(pid_t to_regen);
 void master_signal_actions();
 void master_handle_signal(int signum);
-//usr signal handler
+void print_master_map();
+void exit_simulation();
 void run();
+void print_stats();
 
 int main(int argc, char *argv[]){
     setup();
@@ -106,7 +105,7 @@ void setup(){
     source_processes_generator();
 
     taxis_pid_array = (pid_t *)malloc(SO_TAXI * sizeof(pid_t));
-    for (int i = 0; i< SO_SOURCES; i++){
+    for (int i = 0; i < SO_SOURCES; i++){
         taxis_pid_array[i] = 0;
     }
     taxi_processes_generator();
@@ -123,18 +122,18 @@ void read_parameters(){
 		exit(EXIT_FAILURE);
     }
 
-    fscanf(f, "%*s %d\n", SO_HOLES);
-    fscanf(f, "%*s %d\n", SO_TOP_CELLS);
-    fscanf(f, "%*s %d\n", SO_SOURCES);
-    fscanf(f, "%*s %d\n", SO_CAP_MIN);
-    fscanf(f, "%*s %d\n", SO_CAP_MAX);
-    fscanf(f, "%*s %d\n", SO_TAXI);
-    fscanf(f, "%*s %d\n", SO_TIMENSEC_MIN);
-    fscanf(f, "%*s %d\n", SO_TIMENSEC_MAX);
-    fscanf(f, "%*s %d\n", SO_TIMEOUT);
-    fscanf(f, "%*s %d\n", SO_DURATION);
-    fscanf(f, "%*s %d\n", SO_INIT_REQUESTS_MIN);
-    fscanf(f, "%*s %d\n", SO_INIT_REQUESTS_MAX);
+    fscanf(f, "%*s %d\n", &SO_HOLES);
+    fscanf(f, "%*s %d\n", &SO_TOP_CELLS);
+    fscanf(f, "%*s %d\n", &SO_SOURCES);
+    fscanf(f, "%*s %d\n", &SO_CAP_MIN);
+    fscanf(f, "%*s %d\n", &SO_CAP_MAX);
+    fscanf(f, "%*s %d\n", &SO_TAXI);
+    fscanf(f, "%*s %ld\n", &SO_TIMENSEC_MIN);
+    fscanf(f, "%*s %ld\n", &SO_TIMENSEC_MAX);
+    fscanf(f, "%*s %d\n", &SO_TIMEOUT);
+    fscanf(f, "%*s %d\n", &SO_DURATION);
+    fscanf(f, "%*s %d\n", &SO_INIT_REQUESTS_MIN);
+    fscanf(f, "%*s %d\n", &SO_INIT_REQUESTS_MAX);
 
     test_parameters();
 }
@@ -373,13 +372,26 @@ void shd_memory_initialization(){
 
 void source_processes_generator(){
     int i = -1, x, y, request_number;
+    char *source_args[7];
 
+    for (int k = 0; k <= 7; k++){
+        source_args[k] = malloc(30 * sizeof(char));
+    }
     for (x = 0; x < SO_HEIGHT; x++){
         for (y = 0; y < SO_WIDTH; y++){
             if (master_map[x][y] == 2){
                 i++;
                 request_number = rand() % (SO_INIT_REQUESTS_MAX + 1 - SO_INIT_REQUESTS_MIN) + SO_INIT_REQUESTS_MIN;
                 total_requests += request_number;
+                sprintf(source_args[0], "%s", "Source");
+                sprintf(source_args[1], "%d", x);
+                sprintf(source_args[2], "%d", y);
+                sprintf(source_args[3], "%d", msgqueue_id);
+                sprintf(source_args[4], "%d", sem_sync_id);
+                sprintf(source_args[5], "%d", shd_mem_to_source_id);
+                sprintf(source_args[6], "%d", request_number);
+                source_args[7] = NULL;
+
                 switch(sources_pid_array[i] = fork()){
                     case -1:
                         fprintf(stderr,"Error #%03d: %s\n", errno, strerror(errno));
@@ -387,19 +399,7 @@ void source_processes_generator(){
                         break;
                     
                     case 0:
-                        char *source_args[] = {
-                            "Source",
-                            (char)x,
-                            (char)y,
-                            (char)msgqueue_id,
-                            (char)sem_sync_id,
-                            (char)shd_mem_to_source_id,
-                            (char)request_number,
-                            NULL
-                        };
-
                         execve("bin/Source", source_args, NULL);
-
 	                    fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
 	                    exit(EXIT_FAILURE);
                         break;
@@ -414,6 +414,11 @@ void source_processes_generator(){
 
 void taxi_processes_generator(){
     int i, x, y, generated;
+    char *taxi_args[9];
+
+    for (int k = 0; k <= 9; k++){
+        taxi_args[k] = malloc(30 * sizeof(char));
+    }
     srand(time(NULL));
 
     for (i = 0; i < SO_TAXI; i++){
@@ -434,6 +439,17 @@ void taxi_processes_generator(){
                 }
             }
         }
+
+        sprintf(taxi_args[0], "%s", "Taxi");
+        sprintf(taxi_args[1], "%d", x);
+        sprintf(taxi_args[2], "%d", y);
+        sprintf(taxi_args[3], "%d", SO_TIMEOUT);
+        sprintf(taxi_args[4], "%d", msgqueue_id);
+        sprintf(taxi_args[5], "%d", sem_sync_id);
+        sprintf(taxi_args[6], "%d", sem_cells_cap_id);
+        sprintf(taxi_args[7], "%d", shd_mem_to_taxi_id);
+        sprintf(taxi_args[8], "%d", shd_mem_returned_stats_id);
+        taxi_args[9] = NULL;
         
         switch(taxis_pid_array[i] = fork()){
             case -1:
@@ -442,21 +458,7 @@ void taxi_processes_generator(){
                 break;
                     
             case 0:
-                char *taxi_args[] = {
-                    "Taxi",
-                    (char)x,
-                    (char)y,
-                    (char)SO_TIMEOUT,
-                    (char)msgqueue_id,
-                    (char)sem_sync_id,
-                    (char)sem_cells_cap_id,
-                    (char)shd_mem_to_taxi_id,
-                    (char)shd_mem_returned_stats_id,
-                    NULL
-                };
-
                 execve("bin/Taxi", taxi_args, NULL);
-
 	            fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
 	            exit(EXIT_FAILURE);
                 break;
@@ -469,6 +471,11 @@ void taxi_processes_generator(){
 
 void taxi_processes_regenerator(pid_t to_regen){
     int i, x, y, generated = 0; 
+    char *taxi_args[9];
+
+    for (int k = 0; k <= 9; k++){
+        taxi_args[k] = malloc(30 * sizeof(char));
+    }
     srand(time(NULL));
 
     for(i = 0; i < SO_TAXI; i++){
@@ -494,6 +501,17 @@ void taxi_processes_regenerator(pid_t to_regen){
         }
     }
 
+    sprintf(taxi_args[0], "%s", "Taxi");
+    sprintf(taxi_args[1], "%d", x);
+    sprintf(taxi_args[2], "%d", y);
+    sprintf(taxi_args[3], "%d", SO_TIMEOUT);
+    sprintf(taxi_args[4], "%d", msgqueue_id);
+    sprintf(taxi_args[5], "%d", sem_sync_id);
+    sprintf(taxi_args[6], "%d", sem_cells_cap_id);
+    sprintf(taxi_args[7], "%d", shd_mem_to_taxi_id);
+    sprintf(taxi_args[8], "%d", shd_mem_returned_stats_id);
+    taxi_args[9] = NULL;
+
     switch(taxis_pid_array[i] = fork()){
         case -1:
             fprintf(stderr,"Error #%03d: %s\n", errno, strerror(errno));
@@ -501,21 +519,7 @@ void taxi_processes_regenerator(pid_t to_regen){
             break;
                     
         case 0:
-            char* taxi_args[] = {
-                "Taxi",
-                (char)x,
-                (char)y,
-                (char)SO_TIMEOUT,
-                (char)msgqueue_id,
-                (char)sem_sync_id,
-                (char)sem_cells_cap_id,
-                (char)shd_mem_to_taxi_id,
-                (char)shd_mem_returned_stats_id,
-                NULL
-            };
-
             execve("bin/Taxi", taxi_args, NULL);
-
 	        fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
 	        exit(EXIT_FAILURE);
             break;
@@ -527,6 +531,7 @@ void taxi_processes_regenerator(pid_t to_regen){
 
 void master_signal_actions(){
     struct sigaction sa_alarm, sa_int;
+    sigset_t mask;
 
     sigemptyset(&mask); 
     sigaddset(&mask, SIGALRM);
@@ -613,4 +618,8 @@ void run(){
     //so-top-cells
     print_stats();
 }
-  
+
+void print_stats(){
+
+
+} 

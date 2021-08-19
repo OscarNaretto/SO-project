@@ -20,7 +20,7 @@ struct sembuf sops[2];
 
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
-void taxi_set_maps();
+void taxi_maps_generator();
 void customer_research();
 int check_msg(int x, int y);
 int in_bounds(int x, int y);
@@ -45,17 +45,14 @@ int main(int argc, char const *argv[]){
     sem_cells_cap_id = atoi(argv[6]);
 
     shd_mem_taxi = shmat(atoi(argv[7]), NULL, 0);
-    if(shd_mem_taxi == (taxi_value_struct *)(-1)){
-        fprintf(stderr, "\n%s: %d. Impossibile agganciare la shd_mem \n", __FILE__, __LINE__);
-    }
+    TEST_ERROR;
+    
     taxi_maps_generator();
 
     shd_mem_returned_stats = shmat(atoi(argv[8]), NULL, 0);
-    if(shd_mem_returned_stats == (returned_stats *)(-1)){
-        fprintf(stderr, "\n%s: %d. Impossibile agganciare la shd_mem \n", __FILE__, __LINE__);
-    }
+    TEST_ERROR;
     
-    process_sync(sem_sync_id);//passare set di semafori
+    processes_sync(sem_sync_id);
 
     while (1) {
         customer_research();
@@ -94,7 +91,7 @@ void taxi_signal_handler(int signum){
     }
 }
 
-void taxi_set_maps(){
+void taxi_maps_generator(){
     int i, j;
     int offset = 0;
 
@@ -132,8 +129,8 @@ void taxi_set_maps(){
 }
 
 void customer_research(){
-    if(check_masg(x,y)){ 
-        start_a_trip();
+    if(check_msg(x,y)){ 
+        taxi_ride();
     } else {
         sops[0].sem_num = (x * SO_WIDTH) + y; 
         sops[0].sem_op = 1;
@@ -145,22 +142,16 @@ void customer_research(){
 }
 
 int check_msg(int x, int y){
-    int msg_ready = 0, num_bytes;
-    struct msgbuf msg_snd_buf;
+    int num_bytes;
 
-    //lock_signals(all);
-
-    num_bytes = msgrcv(msgqueue_id, &msg_snd_buf, MSG_LEN, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
-        
+    num_bytes = msgrcv(msgqueue_id, &buf_msg, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);    
     if (num_bytes >= 0){
-        X = atoi(msg_snd_buf.mtext) / SO_WIDTH;
-        Y = atoi(msg_snd_buf.mtext) % SO_WIDTH;
+        X = atoi(buf_msg.mtext) / SO_WIDTH;
+        Y = atoi(buf_msg.mtext) % SO_WIDTH;
         return 1;
     } else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
-
-    //unlock_signals(all);
 
     return 0;
 }
@@ -190,22 +181,22 @@ void taxi_ride(){
         if (y == Y && x == X){
             arrived = 1;
         } else if (x < X){
-            if (coordinate_is_acceptable(x + 1, y)){
+            if (in_bounds(x + 1, y)){
                 x++;
                 mov_choice = 0;
             }
         } else if (x > X){
-            if (coordinate_is_acceptable(x - 1, y)){
+            if (in_bounds(x - 1, y)){
                 x--;
                 mov_choice = 1;
             }
         } else if (y < Y){
-            if (coordinate_is_acceptable(x, y + 1)){
+            if (in_bounds(x, y + 1)){
                 y++;
                 mov_choice = 2;
             }
         } else if (y > Y){
-            if (coordinate_is_acceptable(x, y - 1)){
+            if (in_bounds(x, y - 1)){
                 y--;
                 mov_choice = 3;
             }
@@ -246,15 +237,15 @@ void taxi_ride(){
     }
     completed_trips++;
     if (crossed_cells > shd_mem_returned_stats->longest_trip) {
-        taxi_return_reserve_sem(sem_sync_id);
+        shdmem_return_sem_reserve(sem_sync_id);
         shd_mem_returned_stats->longest_trip = crossed_cells;
         shd_mem_returned_stats->pid_longest_trip = getpid();
-        taxi_return_release_sem(sem_sync_id);
+        shdmem_return_sem_release(sem_sync_id);
     }
     if (trip_time > shd_mem_returned_stats->slowest_trip) {
-        taxi_return_reserve_sem(sem_sync_id);
+        shdmem_return_sem_reserve(sem_sync_id);
         shd_mem_returned_stats->slowest_trip = trip_time;
         shd_mem_returned_stats->pid_slowest_trip = getpid();
-        taxi_return_release_sem(sem_sync_id);
+        shdmem_return_sem_release(sem_sync_id);
     } 
 }

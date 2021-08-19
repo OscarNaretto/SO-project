@@ -19,8 +19,8 @@
 #include <time.h>
 #include <sys/sem.h>
 
-#define SO_WIDTH 20
-#define SO_HEIGHT 10
+#define SO_WIDTH 60
+#define SO_HEIGHT 20
 #define REPLACE_TAXI 11
 #define TAXI_ABORTED 12
 
@@ -33,13 +33,13 @@
 					   errno,\
 					   strerror(errno));exit(-1);}
 
-#define MSG_LEN 128 /* 128 - sizeof(long) */
+#define MSG_MAX_SIZE 128
 
 //Struttura del buffer per i messaggi
 struct msgbuf{
 	long mtype;
-	char mtext[MSG_LEN];
-}buf_msg_snd;
+	char mtext[MSG_MAX_SIZE];
+} buf_msg;
 
 //cell value passed to source process
 typedef struct {
