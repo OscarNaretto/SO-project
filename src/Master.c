@@ -45,8 +45,9 @@ sigset_t mask;
 
 //stats
 int execution_time = 0;
+int total_requests = 0;
 int completed_trips = 0;
-int unresolved_trips = 0; //SO_SOURCE output requests - completed trips? tbd
+int unresolved_trips = 0; //unresolved_trips = total_requests - completed_trips
 int aborted_trips = 0;
 
 void setup();
@@ -371,12 +372,14 @@ void shd_memory_initialization(){
 }
 
 void source_processes_generator(){
-    int i = -1, x, y;
+    int i = -1, x, y, request_number;
 
     for (x = 0; x < SO_HEIGHT; x++){
-        for (y = 0; y< SO_WIDTH; y++){
+        for (y = 0; y < SO_WIDTH; y++){
             if (master_map[x][y] == 2){
                 i++;
+                request_number = rand() % (SO_INIT_REQUESTS_MAX + 1 - SO_INIT_REQUESTS_MIN) + SO_INIT_REQUESTS_MIN;
+                total_requests += request_number;
                 switch(sources_pid_array[i] = fork()){
                     case -1:
                         fprintf(stderr,"Error #%03d: %s\n", errno, strerror(errno));
@@ -391,8 +394,7 @@ void source_processes_generator(){
                             (char)msgqueue_id,
                             (char)sem_sync_id,
                             (char)shd_mem_to_source_id,
-                            (char)SO_INIT_REQUESTS_MIN,
-                            (char)SO_INIT_REQUESTS_MAX,
+                            (char)request_number,
                             NULL
                         };
 
