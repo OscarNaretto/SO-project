@@ -138,7 +138,7 @@ void free_up_memory_of_taxi_map(int **taxi_map){
     free(taxi_map);
 }
 
-void free_up_memory_of_taxi_timensec_map(int **taxi_timensec_map){
+void free_up_memory_of_taxi_timensec_map(long int **taxi_timensec_map){
     for (int i = 0; i < SO_HEIGHT; i++){
         free(taxi_timensec_map[i]);
     }

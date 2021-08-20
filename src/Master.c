@@ -79,7 +79,10 @@ int main(int argc, char *argv[]){
     //all the processes are generated and ready to run
     run();
     
-    //print_master_map
+    //print last map and final stats
+    print_master_map();
+    //so-top-cells
+    print_stats();
 
     //free malloc and ipcs
 }
@@ -413,13 +416,13 @@ void source_processes_generator(){
 }
 
 void taxi_processes_generator(){
-    int i, x, y, generated;
+    int k, i, x, y, generated;
     char *taxi_args[10];
 
-    for (int k = 0; k <= 9; k++){
+    for (k = 0; k <= 9; k++){
         taxi_args[k] = malloc(30 * sizeof(char));
     }
-    srand(time(NULL));
+    srand(getpid());
 
     for (i = 0; i < SO_TAXI; i++){
         generated = 0;
@@ -476,7 +479,7 @@ void taxi_processes_regenerator(pid_t to_regen){
     for (int k = 0; k <= 9; k++){
         taxi_args[k] = malloc(30 * sizeof(char));
     }
-    srand(time(NULL));
+    srand(getpid());
 
     for(i = 0; i < SO_TAXI; i++){
         if(taxis_pid_array[i] == to_regen){
@@ -612,11 +615,6 @@ void run(){
             taxi_processes_regenerator(terminatedPid);
         } 
     }
-    
-    //print last map and final stats
-    print_master_map();
-    //so-top-cells
-    print_stats();
 }
 
 void print_stats(){
