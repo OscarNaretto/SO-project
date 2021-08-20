@@ -121,7 +121,7 @@ void source_set_maps(){
 
 void source_call_taxi(){
     int X, Y, acceptable = 0;
-    srand(x * SO_WIDTH + y);
+    srand(getpid());
 
     while (acceptable){
         X = rand() % SO_HEIGHT;

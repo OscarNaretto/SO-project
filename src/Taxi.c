@@ -131,14 +131,14 @@ void taxi_maps_generator(){
     shmdt(shd_mem_taxi);
 }
 
-void free_up_memory_of_taxi_map(int **taxi_map,){
+void free_up_memory_of_taxi_map(int **taxi_map){
     for (int i = 0; i < SO_HEIGHT; i++){
-        free(tax_map[i]);
+        free(taxi_map[i]);
     }
     free(taxi_map);
 }
 
-void free_up_memory_of_taxi_timensec_map(**taxi_timensec_map){
+void free_up_memory_of_taxi_timensec_map(long int **taxi_timensec_map){
     for (int i = 0; i < SO_HEIGHT; i++){
         free(taxi_timensec_map[i]);
     }
