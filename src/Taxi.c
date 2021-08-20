@@ -81,10 +81,8 @@ void taxi_signal_handler(int signum){
         sops[0].sem_num = (x * SO_WIDTH) + y; 
         sops[0].sem_op = 1;
         semop(sem_cells_cap_id, sops, 1);
-        //malloc free
-        free_up_memory_of_taxi_map(taxi_map);
-        free_up_memory_of_taxi_timensec_map(taxi_timensec_map);
-        //
+        taxi_map_free(taxi_map);
+        taxi_timensec_map_free(taxi_timensec_map);
         exit(TAXI_ABORTED);
         break;
     default:
@@ -130,14 +128,14 @@ void taxi_maps_generator(){
     shmdt(shd_mem_taxi);
 }
 
-void free_up_memory_of_taxi_map(int **taxi_map){
+void taxi_map_free(int **taxi_map){
     for (int i = 0; i < SO_HEIGHT; i++){
         free(taxi_map[i]);
     }
     free(taxi_map);
 }
 
-void free_up_memory_of_taxi_timensec_map(long int **taxi_timensec_map){
+void taxi_timensec_map_free(long int **taxi_timensec_map){
     for (int i = 0; i < SO_HEIGHT; i++){
         free(taxi_timensec_map[i]);
     }
@@ -152,7 +150,8 @@ void customer_research(){
         sops[0].sem_op = 1;
         semop(sem_cells_cap_id, sops, 0);
         //stats
-        //malloc free
+        taxi_map_free(taxi_map);
+        taxi_timensec_map_free(taxi_timensec_map);
         exit(REPLACE_TAXI);
     }
 }

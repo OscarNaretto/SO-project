@@ -111,9 +111,8 @@ void setup(){
     for (i = 0; i < SO_TAXI; i++){
         taxis_pid_array[i] = 0;
     }
-        SO_TAXI = 500;
-
     taxi_processes_generator();
+    
     master_signal_actions();
 }
 
@@ -138,19 +137,6 @@ void read_parameters(){
     fscanf(f, "%*s %d\n", &SO_DURATION);
     fscanf(f, "%*s %d\n", &SO_INIT_REQUESTS_MIN);
     fscanf(f, "%*s %d\n", &SO_INIT_REQUESTS_MAX);
-
-    printf("Parametri letti: SO_HOLES -> %d\n", SO_HOLES);
-    printf("Parametri letti: SO_TOP_CELLS -> %d\n", SO_TOP_CELLS);
-    printf("Parametri letti: SO_SOURCES -> %d\n", SO_SOURCES);
-    printf("Parametri letti: SO_CAP_MIN -> %d\n", SO_CAP_MIN);
-    printf("Parametri letti: SO_CAP_MAX -> %d\n", SO_CAP_MAX);
-    printf("Parametri letti: SO_TAXI -> %d\n", SO_TAXI);
-    printf("Parametri letti: SO_TIMENSEC_MIN -> %d\n", SO_TIMENSEC_MIN);
-    printf("Parametri letti: SO_TIMENSEC_MAX -> %d\n", SO_TIMENSEC_MAX);
-    printf("Parametri letti: SO_TIMEOUT -> %d\n", SO_TIMEOUT);
-    printf("Parametri letti: SO_DURATION -> %d\n", SO_DURATION);
-    printf("Parametri letti: SO_INIT_REQUESTS_MIN -> %d\n", SO_INIT_REQUESTS_MIN);
-    printf("Parametri letti: SO_INIT_REQUESTS_MAX -> %d\n", SO_INIT_REQUESTS_MAX);
 
     test_parameters();
 }
@@ -439,7 +425,6 @@ void taxi_processes_generator(){
     srand(getpid());
 
     for (i = 0; i < SO_TAXI; i++){
-        printf(" ciclo di generazione taxi -> %d\n", i);
         generated = 0;
         while(!generated){
             x = rand() % SO_HEIGHT;
