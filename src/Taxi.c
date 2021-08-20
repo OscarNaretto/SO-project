@@ -99,7 +99,7 @@ void taxi_maps_generator(){
     int offset = 0;
 
     taxi_map = (int **)malloc(SO_HEIGHT*sizeof(int*));
-    if(taxi_map = NULL){
+    if(taxi_map == NULL){
         allocation_error("Taxi", "taxi_map");
     }
     for(i = 0; i < SO_HEIGHT; i++){
@@ -110,7 +110,7 @@ void taxi_maps_generator(){
     }
 
     taxi_timensec_map = (long int **)malloc(SO_HEIGHT*sizeof(long int *));
-    if(taxi_timensec_map = NULL){
+    if(taxi_timensec_map == NULL){
         allocation_error("Taxi", "taxi_timensec_map");
     }
     for ( i = 0; i < SO_HEIGHT; i++){
@@ -131,14 +131,14 @@ void taxi_maps_generator(){
     shmdt(shd_mem_taxi);
 }
 
-void free_up_memory_of_taxi_map(int **taxi_map,){
+void free_up_memory_of_taxi_map(int **taxi_map){
     for (int i = 0; i < SO_HEIGHT; i++){
-        free(tax_map[i]);
+        free(taxi_map[i]);
     }
     free(taxi_map);
 }
 
-void free_up_memory_of_taxi_timensec_map(**taxi_timensec_map){
+void free_up_memory_of_taxi_timensec_map(int **taxi_timensec_map){
     for (int i = 0; i < SO_HEIGHT; i++){
         free(taxi_timensec_map[i]);
     }

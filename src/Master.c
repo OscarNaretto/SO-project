@@ -372,7 +372,7 @@ void shd_memory_initialization(){
 
 void source_processes_generator(){
     int i = -1, x, y, request_number;
-    char *source_args[7];
+    char *source_args[8];
 
     for (int k = 0; k <= 7; k++){
         source_args[k] = malloc(30 * sizeof(char));
@@ -414,7 +414,7 @@ void source_processes_generator(){
 
 void taxi_processes_generator(){
     int i, x, y, generated;
-    char *taxi_args[9];
+    char *taxi_args[10];
 
     for (int k = 0; k <= 9; k++){
         taxi_args[k] = malloc(30 * sizeof(char));
@@ -430,7 +430,7 @@ void taxi_processes_generator(){
                 sops.sem_num = (x * SO_WIDTH) + y; 
                 sops.sem_op = -1;
                 sops.sem_flg = IPC_NOWAIT;
-                if(semop(sem_sync_id, &sops, 1) == -1){
+                if(semop(sem_cells_cap_id, &sops, 1) == -1){
                     if(errno != EAGAIN && errno != EINTR){
                         TEST_ERROR;
                     }
@@ -471,7 +471,7 @@ void taxi_processes_generator(){
 
 void taxi_processes_regenerator(pid_t to_regen){
     int i, x, y, generated = 0; 
-    char *taxi_args[9];
+    char *taxi_args[10];
 
     for (int k = 0; k <= 9; k++){
         taxi_args[k] = malloc(30 * sizeof(char));
