@@ -112,7 +112,7 @@ void setup(){
         taxis_pid_array[i] = 0;
     }
     taxi_processes_generator();
-    
+
     master_signal_actions();
 }
 
@@ -128,9 +128,9 @@ void read_parameters(){
     fscanf(f, "%*s %d\n", &SO_HOLES);
     fscanf(f, "%*s %d\n", &SO_TOP_CELLS);
     fscanf(f, "%*s %d\n", &SO_SOURCES);
+    fscanf(f, "%*s %d\n", &SO_TAXI);
     fscanf(f, "%*s %d\n", &SO_CAP_MIN);
     fscanf(f, "%*s %d\n", &SO_CAP_MAX);
-    fscanf(f, "%*s %d\n", &SO_TAXI);
     fscanf(f, "%*s %ld\n", &SO_TIMENSEC_MIN);
     fscanf(f, "%*s %ld\n", &SO_TIMENSEC_MAX);
     fscanf(f, "%*s %d\n", &SO_TIMEOUT);
@@ -586,24 +586,41 @@ void print_master_map(){
     printf("\nSecondo: %d\n", execution_time);
     for ( x = 0; x < SO_HEIGHT; x++){
         for ( y = 0; y < SO_WIDTH; y++){
+            printf("\x1B[30m");
             switch (master_map[x][y]){
                 case 0:
+                    printf("\x1B[101m");
                     printf(" H ");
+                    printf("\x1B[0m");
                     break;
                 case 1:
-                    printf(" _ ");
+                    if ((master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)) > 0) {
+                        printf("\x1b[43m");
+                        printf(" %d ", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
+                        printf("\x1B[0m");
+                    } else {
+                        printf("  -  ");
+                    }
                     break;
                 case 2:
-                    printf(" S ");
+                    if ((master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)) > 0) {
+                        printf("\x1B[102m");
+                        printf(" %d ", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
+                        printf("\x1B[0m");
+                    } else {
+                        printf("\x1B[102m");
+                        printf(" S ");
+                        printf("\x1B[0m");
+                    }
                     break;
                 default:
                     printf(" E ");
                     break;
             }
         }
-        printf(" \n\n ");
+        printf("\n\n");
     }
-
+    printf("\x1B[0m");
 }
 
 void exit_simulation(){
