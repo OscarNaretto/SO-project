@@ -41,6 +41,7 @@ int main(int argc, char *argv[]){
 
     source_shd_mem = (source_value_struct *)shmat(source_shd_mem_id, NULL, 0);
     TEST_ERROR;
+    
     source_set_maps;
     source_signal_actions;
 

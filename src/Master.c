@@ -1,5 +1,5 @@
 #include "Common.h"
-#define PARAMETERS "./ParametersLarge.txt"
+#define PARAMETERS "./Parameters.txt"
 
 //parameters
 int SO_HOLES = -1;
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]){
 }
 
 void setup(){
-
+    int i;
     //parameters reading and check
     read_parameters();
 
@@ -102,17 +102,18 @@ void setup(){
 
     //sources and taxis process generation; pids are stored in two arrays
     sources_pid_array = (pid_t *)malloc(SO_SOURCES * sizeof(pid_t));
-    for (int i = 0; i< SO_SOURCES; i++){
+    for (i = 0; i< SO_SOURCES; i++){
         sources_pid_array[i] = 0;
     }
     source_processes_generator();
 
     taxis_pid_array = (pid_t *)malloc(SO_TAXI * sizeof(pid_t));
-    for (int i = 0; i < SO_SOURCES; i++){
+    for (i = 0; i < SO_TAXI; i++){
         taxis_pid_array[i] = 0;
     }
-    taxi_processes_generator();
+        SO_TAXI = 500;
 
+    taxi_processes_generator();
     master_signal_actions();
 }
 
@@ -124,7 +125,7 @@ void read_parameters(){
         printf("Errore  nell'apertura del file contenente i parametri\n");
 		exit(EXIT_FAILURE);
     }
-
+    
     fscanf(f, "%*s %d\n", &SO_HOLES);
     fscanf(f, "%*s %d\n", &SO_TOP_CELLS);
     fscanf(f, "%*s %d\n", &SO_SOURCES);
@@ -137,6 +138,19 @@ void read_parameters(){
     fscanf(f, "%*s %d\n", &SO_DURATION);
     fscanf(f, "%*s %d\n", &SO_INIT_REQUESTS_MIN);
     fscanf(f, "%*s %d\n", &SO_INIT_REQUESTS_MAX);
+
+    printf("Parametri letti: SO_HOLES -> %d\n", SO_HOLES);
+    printf("Parametri letti: SO_TOP_CELLS -> %d\n", SO_TOP_CELLS);
+    printf("Parametri letti: SO_SOURCES -> %d\n", SO_SOURCES);
+    printf("Parametri letti: SO_CAP_MIN -> %d\n", SO_CAP_MIN);
+    printf("Parametri letti: SO_CAP_MAX -> %d\n", SO_CAP_MAX);
+    printf("Parametri letti: SO_TAXI -> %d\n", SO_TAXI);
+    printf("Parametri letti: SO_TIMENSEC_MIN -> %d\n", SO_TIMENSEC_MIN);
+    printf("Parametri letti: SO_TIMENSEC_MAX -> %d\n", SO_TIMENSEC_MAX);
+    printf("Parametri letti: SO_TIMEOUT -> %d\n", SO_TIMEOUT);
+    printf("Parametri letti: SO_DURATION -> %d\n", SO_DURATION);
+    printf("Parametri letti: SO_INIT_REQUESTS_MIN -> %d\n", SO_INIT_REQUESTS_MIN);
+    printf("Parametri letti: SO_INIT_REQUESTS_MAX -> %d\n", SO_INIT_REQUESTS_MAX);
 
     test_parameters();
 }
@@ -425,6 +439,7 @@ void taxi_processes_generator(){
     srand(getpid());
 
     for (i = 0; i < SO_TAXI; i++){
+        printf(" ciclo di generazione taxi -> %d\n", i);
         generated = 0;
         while(!generated){
             x = rand() % SO_HEIGHT;
@@ -494,7 +509,7 @@ void taxi_processes_regenerator(pid_t to_regen){
             sops.sem_num = (x * SO_WIDTH) + y; 
             sops.sem_op = -1;
             sops.sem_flg = IPC_NOWAIT;
-            if(semop(sem_sync_id, &sops, 1) == -1){
+            if(semop(sem_cells_cap_id, &sops, 1) == -1){
                 if(errno != EAGAIN && errno != EINTR){
                     TEST_ERROR;
                 }
@@ -546,7 +561,7 @@ void master_signal_actions(){
     sa_int.sa_mask = mask;
 
     sa_alarm.sa_handler = master_handle_signal;
-    sa_alarm.sa_flags =  0;
+    sa_alarm.sa_flags =  SA_RESTART;
     
     sa_int.sa_handler = master_handle_signal; 
     sa_int.sa_flags = 0;
@@ -580,8 +595,29 @@ void master_handle_signal(int signum){
 }
 
 void print_master_map(){
-    printf("\nSecondo: %d\n", execution_time);
+    int x , y;
+        printf(" ");
 
+    printf("\nSecondo: %d\n", execution_time);
+    for ( x = 0; x < SO_HEIGHT; x++){
+        for ( y = 0; y < SO_WIDTH; y++){
+            switch (master_map[x][y]){
+                case 0:
+                    printf(" H ");
+                    break;
+                case 1:
+                    printf(" _ ");
+                    break;
+                case 2:
+                    printf(" S ");
+                    break;
+                default:
+                    printf(" E ");
+                    break;
+            }
+        }
+        printf(" \n\n ");
+    }
 
 }
 

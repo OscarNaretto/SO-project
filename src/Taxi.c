@@ -33,7 +33,6 @@ int main(int argc, char const *argv[]){
     }
 
     taxi_signal_actions();
-    sigfillset(&all);
 
     x = atoi(argv[1]); 
     y = atoi(argv[2]);
