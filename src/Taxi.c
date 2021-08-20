@@ -98,7 +98,7 @@ void taxi_maps_generator(){
     int offset = 0;
 
     taxi_map = (int **)malloc(SO_HEIGHT*sizeof(int*));
-    if(taxi_map = NULL){
+    if(taxi_map == NULL){
         allocation_error("Taxi", "taxi_map");
     }
     for(i = 0; i < SO_HEIGHT; i++){
@@ -109,7 +109,7 @@ void taxi_maps_generator(){
     }
 
     taxi_timensec_map = (long int **)malloc(SO_HEIGHT*sizeof(long int *));
-    if(taxi_timensec_map = NULL){
+    if(taxi_timensec_map == NULL){
         allocation_error("Taxi", "taxi_timensec_map");
     }
     for ( i = 0; i < SO_HEIGHT; i++){
