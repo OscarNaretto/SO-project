@@ -32,10 +32,13 @@ int completed_trips = 0;
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
 void taxi_maps_generator();
+void taxi_map_free(int **taxi_map);
+void taxi_timensec_map_free(long int **taxi_timensec_map);
 void customer_research();
 int check_msg(int x, int y);
 int in_bounds(int x, int y);
 void taxi_ride();
+void travel_information();
 
 int main(int argc, char *argv[]){
     printf("taxi generato?");
