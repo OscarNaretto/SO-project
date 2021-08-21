@@ -44,7 +44,7 @@ int main(int argc, char *argv[]){
 
     source_set_maps;
     source_signal_actions;
-
+    printf("-1 sem_sync da source\n");
     processes_sync(source_sem_sync_id);
     
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
@@ -92,7 +92,7 @@ void source_handle_signal(int signum){
             }
             break;
         case SIGINT:
-            //malloc free
+            source_map_free();
             exit(EXIT_SUCCESS);
             break;
         default:
@@ -105,7 +105,7 @@ void source_set_maps(){
     int i, j, offset = 0;
     
     source_map = (int **)malloc(SO_HEIGHT * sizeof(int *));
-    if (source_map == NULL){allocation_error("Source", "source_map");}
+    if (source_map == NULL){ allocation_error("Source", "source_map"); }
     for (i = 0; i < SO_HEIGHT; i++){
         source_map[i] = malloc(SO_WIDTH * sizeof(int));
         if (source_map[i] == NULL){
@@ -159,4 +159,11 @@ int check_message_for_exit(){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
     return 0;
+}
+
+void source_map_free(){
+    for (int i = 0; i < SO_HEIGHT; i++){
+        free(source_map[i]);
+    }
+    free(source_map);
 }

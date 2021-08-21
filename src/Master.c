@@ -66,6 +66,11 @@ void print_master_map();
 void exit_simulation();
 void run();
 void print_stats();
+void master_map_free();
+void master_cap_map_free();
+void master_timensec_map_free();
+void master_process_array_free();
+void master_free_all();
 
 int main(int argc, char *argv[]){
     setup();
@@ -84,7 +89,8 @@ int main(int argc, char *argv[]){
     //so-top-cells
     print_stats();
 
-    //free malloc and ipcs
+    master_free_all();
+    //free ipcs
 }
 
 void setup(){
@@ -375,10 +381,10 @@ void shd_memory_initialization(){
 }
 
 void source_processes_generator(){
-    int i = -1, x, y, request_number, count = 0;
+    int i = -1, x, y, request_number, count = 0, k;
     char *source_args[8];
 
-    for (int k = 0; k <= 7; k++){
+    for (k = 0; k <= 7; k++){
         source_args[k] = malloc(30 * sizeof(char));
     }
     for (x = 0; x < SO_HEIGHT; x++){
@@ -417,6 +423,9 @@ void source_processes_generator(){
             }
         }
     }
+    for (int k = 0; k <= 7; k++){
+        free(source_args[k]);
+    }
 }
 
 void taxi_processes_generator(){
@@ -446,7 +455,7 @@ void taxi_processes_generator(){
                 }
             }
         }
-                count++;
+        count++;
         sprintf(taxi_args[0], "%s", "Taxi");
         sprintf(taxi_args[1], "%d", x);
         sprintf(taxi_args[2], "%d", y);
@@ -468,7 +477,7 @@ void taxi_processes_generator(){
                 printf("Genero taxi numero %d\n", count);
                 //genera correttamente! Ma poi???
                 execve("bin/Taxi", taxi_args, NULL);
-
+    
 	            fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
 	            exit(EXIT_FAILURE);
                 break;
@@ -477,14 +486,17 @@ void taxi_processes_generator(){
                 break;
         }
     }
+    for (k = 0; k <= 9; k++){
+        free(taxi_args[k]);
+    }
 }
 
 void taxi_processes_regenerator(pid_t to_regen){
     printf("rigenero un taxi!\n");
-    int i, x, y, generated = 0; 
+    int i, x, y, generated = 0, k; 
     char *taxi_args[10];
 
-    for (int k = 0; k <= 9; k++){
+    for (k = 0; k <= 9; k++){
         taxi_args[k] = malloc(30 * sizeof(char));
     }
     srand(getpid());
@@ -537,6 +549,9 @@ void taxi_processes_regenerator(pid_t to_regen){
                     
         default:
             break;
+    }
+    for (k = 0; k <= 9; k++){
+        free(taxi_args[k]);
     }
 }
 
@@ -667,3 +682,35 @@ void print_stats(){
 
 
 } 
+
+void master_map_free(){
+    for (int i = 0; i < SO_HEIGHT; i++){
+        free(master_map[i]);
+    }
+    free(master_map);
+}
+
+void master_cap_map_free(){
+    for (int i = 0; i < SO_HEIGHT; i++){
+        free(master_cap_map[i]);
+    }
+    free(master_cap_map);
+}
+
+void master_timensec_map_free(){
+    for (int i = 0; i < SO_HEIGHT; i++){
+        free(master_timensec_map[i]);
+    }
+    free(master_timensec_map);
+}
+void master_process_array_free(){
+    free(taxis_pid_array);
+    free(sources_pid_array);
+}
+
+void master_free_all(){
+    master_map_free();
+    master_cap_map_free();
+    master_timensec_map_free();
+    master_process_array_free();
+}

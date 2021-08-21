@@ -32,8 +32,9 @@ int completed_trips = 0;
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
 void taxi_maps_generator();
-void taxi_map_free(int **taxi_map);
-void taxi_timensec_map_free(long int **taxi_timensec_map);
+void taxi_map_free();
+void taxi_timensec_map_free();
+void taxi_free_all();
 void customer_research();
 int check_msg(int x, int y);
 int in_bounds(int x, int y);
@@ -91,12 +92,11 @@ void taxi_signal_actions(){
 void taxi_signal_handler(int signum){
     switch (signum){
     case SIGINT:
-        //stats     
+        //stats update   
         sops[0].sem_num = (x * SO_WIDTH) + y; 
         sops[0].sem_op = 1;
         semop(taxi_sem_cells_cap_id, sops, 1);
-        taxi_map_free(taxi_map);
-        taxi_timensec_map_free(taxi_timensec_map);
+        taxi_free_all();
         exit(TAXI_ABORTED);
         break;
     default:
@@ -122,11 +122,13 @@ void taxi_maps_generator(){
 
     taxi_timensec_map = (long int **)malloc(SO_HEIGHT*sizeof(long int *));
     if(taxi_timensec_map == NULL){
+        taxi_map_free();
         allocation_error("Taxi", "taxi_timensec_map");
     }
     for ( i = 0; i < SO_HEIGHT; i++){
        taxi_timensec_map[i] = malloc(SO_WIDTH*sizeof(long int));
        if(taxi_timensec_map == NULL){
+           taxi_map_free();
            allocation_error("Taxi","taxi_timensec_map");
        }
     }
@@ -138,22 +140,26 @@ void taxi_maps_generator(){
            offset++;
        }    
     }
-    
     shmdt(shd_mem_taxi);
 }
 
-void taxi_map_free(int **taxi_map){
+void taxi_map_free(){
     for (int i = 0; i < SO_HEIGHT; i++){
         free(taxi_map[i]);
     }
     free(taxi_map);
 }
 
-void taxi_timensec_map_free(long int **taxi_timensec_map){
+void taxi_timensec_map_free(){
     for (int i = 0; i < SO_HEIGHT; i++){
         free(taxi_timensec_map[i]);
     }
     free(taxi_timensec_map);
+}
+
+void taxi_free_all(){
+    taxi_map_free();
+    taxi_timensec_map_free();
 }
 
 void customer_research(){
@@ -164,8 +170,7 @@ void customer_research(){
         sops[0].sem_op = 1;
         semop(taxi_sem_cells_cap_id, sops, 0);
         //stats
-        taxi_map_free(taxi_map);
-        taxi_timensec_map_free(taxi_timensec_map);
+        taxi_free_all();
         exit(REPLACE_TAXI);
     }
 }
@@ -207,14 +212,12 @@ void taxi_ride(){
     struct timespec timer;
     timer.tv_sec = 0;
 
-    //used to release current cell
+    //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
     sops[0].sem_op = 1; 
-    //used to reserve the cell I'm moving to
     sops[1].sem_op = -1; 
 
     while(!arrived){
         sops[0].sem_num = (x * SO_WIDTH) + y;
-        
         if (y == y_to_go && x == x_to_go){
             arrived = 1;
         } else if (x < x_to_go){
@@ -289,7 +292,7 @@ void taxi_ride(){
 
 void travel_information(){
     shdmem_return_sem_reserve(taxi_sem_sync_id);
-    shd_mem_returned_stats->max_trips_completed = shd_mem_returned_stats->max_trips_completed + shd_mem_returned_stats->trips_completed;
+    //shd_mem_returned_stats->max_trips_completed = shd_mem_returned_stats->max_trips_completed + shd_mem_returned_stats->trips_completed;
     /*code*/
     shdmem_return_sem_release(taxi_sem_sync_id);
 }
