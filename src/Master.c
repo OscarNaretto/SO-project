@@ -74,7 +74,7 @@ int main(int argc, char *argv[]){
     sops.sem_num = 0;
     sops.sem_op = 0; 
     sops.sem_flg = 0;
-    semop(sem_sync_id, &sops, 0);
+    semop(sem_sync_id, &sops, 1);
 
     //all the processes are generated and ready to run
     run();
@@ -317,11 +317,12 @@ void semaphore_generator(){
     TEST_ERROR;
 
     //processes sync semaphore
+    printf("Genero semaforo: TAXI -> %d, SOURCE -> %d\n", SO_TAXI, SO_SOURCES);
     arg.val = SO_SOURCES + SO_TAXI;
     semctl(sem_sync_id, 0, SETVAL, arg);
     TEST_ERROR;
     
-    //returned values shd_memory sync semaphore
+    //returned values shd_memory mutex
     arg.val = 1;
     semctl(sem_sync_id, 1, SETVAL, arg);
     TEST_ERROR;
@@ -374,7 +375,7 @@ void shd_memory_initialization(){
 }
 
 void source_processes_generator(){
-    int i = -1, x, y, request_number;
+    int i = -1, x, y, request_number, count = 0;
     char *source_args[8];
 
     for (int k = 0; k <= 7; k++){
@@ -384,6 +385,7 @@ void source_processes_generator(){
         for (y = 0; y < SO_WIDTH; y++){
             if (master_map[x][y] == 2){
                 i++;
+                count++;
                 request_number = rand() % (SO_INIT_REQUESTS_MAX + 1 - SO_INIT_REQUESTS_MIN) + SO_INIT_REQUESTS_MIN;
                 total_requests += request_number;
                 sprintf(source_args[0], "%s", "Source");
@@ -402,6 +404,8 @@ void source_processes_generator(){
                         break;
                     
                     case 0:
+                        printf("Genero source numero %d\n", count);
+                
                         execve("bin/Source", source_args, NULL);
 	                    fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
 	                    exit(EXIT_FAILURE);
@@ -416,7 +420,7 @@ void source_processes_generator(){
 }
 
 void taxi_processes_generator(){
-    int k, i, x, y, generated;
+    int k, i, x, y, generated, count = 0;
     char *taxi_args[10];
 
     for (k = 0; k <= 9; k++){
@@ -442,7 +446,7 @@ void taxi_processes_generator(){
                 }
             }
         }
-
+                count++;
         sprintf(taxi_args[0], "%s", "Taxi");
         sprintf(taxi_args[1], "%d", x);
         sprintf(taxi_args[2], "%d", y);
@@ -461,7 +465,10 @@ void taxi_processes_generator(){
                 break;
                     
             case 0:
+                printf("Genero taxi numero %d\n", count);
+                //genera correttamente! Ma poi???
                 execve("bin/Taxi", taxi_args, NULL);
+
 	            fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
 	            exit(EXIT_FAILURE);
                 break;
@@ -473,6 +480,7 @@ void taxi_processes_generator(){
 }
 
 void taxi_processes_regenerator(pid_t to_regen){
+    printf("rigenero un taxi!\n");
     int i, x, y, generated = 0; 
     char *taxi_args[10];
 

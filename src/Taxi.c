@@ -1,22 +1,33 @@
 #include "Common.h"
-#define EXIT_FAILURE_CUSTOM -1
 
+//parameters
+struct timespec timeout;
+
+//maps
 int **taxi_map;
 long int **taxi_timensec_map;
 
-int x, y;/*cordinate taxi*/
-int X, Y;
-int msgqueue_id,sem_sync_id,sem_cells_cap_id;
+//coordinates
+int x, y;
+int x_to_go, y_to_go;
 
-int completed_trips = 0;
+//message queue
+int msgqueue_id;
+struct msgbuf my_msgbuf;
 
-sigset_t mask, all; 
-
-struct timespec timeout;
-
-taxi_value_struct *shd_mem_taxi; 
 //semaphores
+int taxi_sem_sync_id;
+int taxi_sem_cells_cap_id;
 struct sembuf sops[2];
+
+//shared memory
+taxi_value_struct *shd_mem_taxi; 
+
+//signals
+sigset_t mask;
+
+//stats
+int completed_trips = 0;
 
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
@@ -26,32 +37,32 @@ int check_msg(int x, int y);
 int in_bounds(int x, int y);
 void taxi_ride();
 
-int main(int argc, char const *argv[]){
+int main(int argc, char *argv[]){
+    printf("taxi generato?");
     if(argc != 9){
         fprintf(stderr, "\n%s: %d. NUMERO DI PARAMETRI ERRATO\n", __FILE__, __LINE__);
-		exit(EXIT_FAILURE_CUSTOM);
+		exit(EXIT_FAILURE);
     }
-
-    taxi_signal_actions();
+    printf("taxi generato");
 
     x = atoi(argv[1]); 
     y = atoi(argv[2]);
-    
+
     timeout.tv_sec = atoi(argv[3]);
 
     msgqueue_id = atoi(argv[4]);
-    sem_sync_id = atoi(argv[5]);
-    sem_cells_cap_id = atoi(argv[6]);
+    taxi_sem_sync_id = atoi(argv[5]);
+    taxi_sem_cells_cap_id = atoi(argv[6]);
 
     shd_mem_taxi = shmat(atoi(argv[7]), NULL, 0);
     TEST_ERROR;
     
-    taxi_maps_generator();
-
     shd_mem_returned_stats = shmat(atoi(argv[8]), NULL, 0);
     TEST_ERROR;
-    
-    processes_sync(sem_sync_id);
+
+    taxi_maps_generator();
+    taxi_signal_actions();
+    processes_sync(taxi_sem_sync_id);
 
     while (1) {
         customer_research();
@@ -80,7 +91,7 @@ void taxi_signal_handler(int signum){
         //stats     
         sops[0].sem_num = (x * SO_WIDTH) + y; 
         sops[0].sem_op = 1;
-        semop(sem_cells_cap_id, sops, 1);
+        semop(taxi_sem_cells_cap_id, sops, 1);
         taxi_map_free(taxi_map);
         taxi_timensec_map_free(taxi_timensec_map);
         exit(TAXI_ABORTED);
@@ -148,7 +159,7 @@ void customer_research(){
     } else {
         sops[0].sem_num = (x * SO_WIDTH) + y; 
         sops[0].sem_op = 1;
-        semop(sem_cells_cap_id, sops, 0);
+        semop(taxi_sem_cells_cap_id, sops, 0);
         //stats
         taxi_map_free(taxi_map);
         taxi_timensec_map_free(taxi_timensec_map);
@@ -158,15 +169,23 @@ void customer_research(){
 
 int check_msg(int x, int y){
     int num_bytes;
+    sigset_t masked;
 
-    num_bytes = msgrcv(msgqueue_id, &buf_msg, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);    
-    if (num_bytes >= 0){
-        X = atoi(buf_msg.mtext) / SO_WIDTH;
-        Y = atoi(buf_msg.mtext) % SO_WIDTH;
+    //sigfillset(&masked);
+    //sigprocmask(SIG_BLOCK, &masked, NULL);
+
+    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);    
+    if (num_bytes > 0){
+        x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
+        y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
+        //sigprocmask(SIG_UNBLOCK, &masked, NULL);
+        printf("ritorno 1\n");
         return 1;
     } else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
+    printf("ritorno zero!!!!!\n");
+        //sigprocmask(SIG_UNBLOCK, &masked, NULL);
 
     return 0;
 }
@@ -193,24 +212,24 @@ void taxi_ride(){
     while(!arrived){
         sops[0].sem_num = (x * SO_WIDTH) + y;
         
-        if (y == Y && x == X){
+        if (y == y_to_go && x == x_to_go){
             arrived = 1;
-        } else if (x < X){
+        } else if (x < x_to_go){
             if (in_bounds(x + 1, y)){
                 x++;
                 mov_choice = 0;
             }
-        } else if (x > X){
+        } else if (x > x_to_go){
             if (in_bounds(x - 1, y)){
                 x--;
                 mov_choice = 1;
             }
-        } else if (y < Y){
+        } else if (y < y_to_go){
             if (in_bounds(x, y + 1)){
                 y++;
                 mov_choice = 2;
             }
-        } else if (y > Y){
+        } else if (y > y_to_go){
             if (in_bounds(x, y - 1)){
                 y--;
                 mov_choice = 3;
@@ -219,7 +238,7 @@ void taxi_ride(){
 
         if(!arrived){
             sops[1].sem_num = (x * SO_WIDTH) + y;
-            if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
+            if(semtimedop(taxi_sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
                     //over timeout
                     raise(SIGINT);
@@ -252,22 +271,22 @@ void taxi_ride(){
     }
     completed_trips++;
     if (crossed_cells > shd_mem_returned_stats->longest_trip) {
-        shdmem_return_sem_reserve(sem_sync_id);
+        shdmem_return_sem_reserve(taxi_sem_sync_id);
         shd_mem_returned_stats->longest_trip = crossed_cells;
         shd_mem_returned_stats->pid_longest_trip = getpid();
-        shdmem_return_sem_release(sem_sync_id);
+        shdmem_return_sem_release(taxi_sem_sync_id);
     }
     if (trip_time > shd_mem_returned_stats->slowest_trip) {
-        shdmem_return_sem_reserve(sem_sync_id);
+        shdmem_return_sem_reserve(taxi_sem_sync_id);
         shd_mem_returned_stats->slowest_trip = trip_time;
         shd_mem_returned_stats->pid_slowest_trip = getpid();
-        shdmem_return_sem_release(sem_sync_id);
+        shdmem_return_sem_release(taxi_sem_sync_id);
     } 
 }
 
 void travel_information(){
-    shdmem_return_sem_reserve(sem_sync_id);
+    shdmem_return_sem_reserve(taxi_sem_sync_id);
     shd_mem_returned_stats->max_trips_completed = shd_mem_returned_stats->max_trips_completed + shd_mem_returned_stats->trips_completed;
     /*code*/
-    shdmem_return_sem_release(sem_sync_id);
+    shdmem_return_sem_release(taxi_sem_sync_id);
 }

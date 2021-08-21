@@ -8,10 +8,11 @@ int **source_map;
 
 //coordinates
 int x, y;
-int X, Y;
+int x_to_go, y_to_go;
 
 //message queue
 int source_msgqueue_id;
+struct msgbuf my_msgbuf;
 
 //semaphores
 int source_sem_sync_id;
@@ -31,7 +32,6 @@ int main(int argc, char *argv[]){
         printf("ERRORE NUMERO DEI PARAMETRI PASSATI A SOURCE \n");
         exit(EXIT_FAILURE);
     }
-
     x = atoi(argv[1]);
     y = atoi(argv[2]);
     source_msgqueue_id = atoi(argv[3]);
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]){
 
     source_shd_mem = (source_value_struct *)shmat(source_shd_mem_id, NULL, 0);
     TEST_ERROR;
-    
+
     source_set_maps;
     source_signal_actions;
 
@@ -121,37 +121,37 @@ void source_set_maps(){
 }
 
 void source_call_taxi(){
-    int X, Y, acceptable = 0;
+    int X, y_to_go, acceptable = 0;
     srand(getpid());
 
     while (acceptable){
         X = rand() % SO_HEIGHT;
-        Y = rand() % SO_WIDTH;
+        y_to_go = rand() % SO_WIDTH;
 
-        if(source_map[X][Y] != 0 && (x != X || y != Y)){
+        if(source_map[X][y_to_go] != 0 && (x != X || y != y_to_go)){
             acceptable = 1;
         }
     }
     
-    buf_msg.mtype = (x * SO_WIDTH) + y + 1;
-    sprintf(buf_msg.mtext, "%d", (X * SO_WIDTH) + Y);
-    msgsnd(source_msgqueue_id, &buf_msg, MSG_MAX_SIZE, IPC_NOWAIT);
+    my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
+    sprintf(my_msgbuf.mtext, "%d", (X * SO_WIDTH) + y_to_go);
+    msgsnd(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, IPC_NOWAIT);
     TEST_ERROR;
 }
 
 int check_message_for_exit(){
     int num_bytes;
 
-    num_bytes = msgrcv(source_msgqueue_id, &buf_msg, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
-    if (num_bytes >= 0){
+    num_bytes = msgrcv(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
+    if (num_bytes > 0){
         //reading msg
-        X = atoi(buf_msg.mtext) / SO_WIDTH;
-        Y = atoi(buf_msg.mtext) % SO_WIDTH;
+        x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
+        y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
         
         //resending msg
-        buf_msg.mtype = (x * SO_WIDTH) + y + 1;
-        sprintf(buf_msg.mtext, "%d", (X * SO_WIDTH) + Y);
-        msgsnd(source_msgqueue_id, &buf_msg, MSG_MAX_SIZE, IPC_NOWAIT);
+        my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
+        sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
+        msgsnd(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, IPC_NOWAIT);
         TEST_ERROR;
 
         return 1;

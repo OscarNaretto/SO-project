@@ -39,7 +39,7 @@
 struct msgbuf{
 	long mtype;
 	char mtext[MSG_MAX_SIZE];
-} buf_msg;
+};
 
 //cell value passed to source process
 typedef struct {
