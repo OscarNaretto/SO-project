@@ -1,5 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,12 +38,13 @@
 					   strerror(errno));exit(-1);}
 
 #define MSG_MAX_SIZE 128
-
+#define MSGMAX  4056  /* <= 4056 */   /* max size of message (bytes) */
+/*
 //Struttura del buffer per i messaggi
 struct msgbuf{
 	long mtype;
 	char mtext[MSG_MAX_SIZE];
-};
+};*/
 
 //cell value passed to source process
 typedef struct {
