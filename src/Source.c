@@ -26,6 +26,7 @@ void source_signal_actions();
 void source_handle_signal(int signum);
 void source_call_taxi();
 int check_message_for_exit();
+void source_map_free();
 
 int main(int argc, char *argv[]){
     if(argc != 7){
@@ -44,7 +45,6 @@ int main(int argc, char *argv[]){
 
     source_set_maps;
     source_signal_actions;
-    printf("-1 sem_sync da source\n");
     processes_sync(source_sem_sync_id);
     
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
@@ -135,7 +135,7 @@ void source_call_taxi(){
     
     my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
     sprintf(my_msgbuf.mtext, "%d", (X * SO_WIDTH) + y_to_go);
-    msgsnd(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, IPC_NOWAIT);
+    msgsnd(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, 0);
     TEST_ERROR;
 }
 

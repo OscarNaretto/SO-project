@@ -323,7 +323,6 @@ void semaphore_generator(){
     TEST_ERROR;
 
     //processes sync semaphore
-    printf("Genero semaforo: TAXI -> %d, SOURCE -> %d\n", SO_TAXI, SO_SOURCES);
     arg.val = SO_SOURCES + SO_TAXI;
     semctl(sem_sync_id, 0, SETVAL, arg);
     TEST_ERROR;
@@ -381,7 +380,7 @@ void shd_memory_initialization(){
 }
 
 void source_processes_generator(){
-    int i = -1, x, y, request_number, count = 0, k;
+    int i = -1, x, y, request_number, k;
     char *source_args[8];
 
     for (k = 0; k <= 7; k++){
@@ -391,7 +390,6 @@ void source_processes_generator(){
         for (y = 0; y < SO_WIDTH; y++){
             if (master_map[x][y] == 2){
                 i++;
-                count++;
                 request_number = rand() % (SO_INIT_REQUESTS_MAX + 1 - SO_INIT_REQUESTS_MIN) + SO_INIT_REQUESTS_MIN;
                 total_requests += request_number;
                 sprintf(source_args[0], "%s", "Source");
@@ -409,9 +407,7 @@ void source_processes_generator(){
                         exit(EXIT_FAILURE);
                         break;
                     
-                    case 0:
-                        printf("Genero source numero %d\n", count);
-                
+                    case 0:                
                         execve("bin/Source", source_args, NULL);
 	                    fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
 	                    exit(EXIT_FAILURE);
@@ -429,7 +425,7 @@ void source_processes_generator(){
 }
 
 void taxi_processes_generator(){
-    int k, i, x, y, generated, count = 0;
+    int k, i, x, y, generated;
     char *taxi_args[10];
 
     for (k = 0; k <= 9; k++){
@@ -455,7 +451,6 @@ void taxi_processes_generator(){
                 }
             }
         }
-        count++;
         sprintf(taxi_args[0], "%s", "Taxi");
         sprintf(taxi_args[1], "%d", x);
         sprintf(taxi_args[2], "%d", y);
@@ -474,8 +469,6 @@ void taxi_processes_generator(){
                 break;
                     
             case 0:
-                printf("Genero taxi numero %d\n", count);
-                //genera correttamente! Ma poi???
                 execve("bin/Taxi", taxi_args, NULL);
     
 	            fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
@@ -492,7 +485,6 @@ void taxi_processes_generator(){
 }
 
 void taxi_processes_regenerator(pid_t to_regen){
-    printf("rigenero un taxi!\n");
     int i, x, y, generated = 0, k; 
     char *taxi_args[10];
 
@@ -609,7 +601,7 @@ void print_master_map(){
     printf("\nSecondo: %d\n", execution_time);
     for ( x = 0; x < SO_HEIGHT; x++){
         for ( y = 0; y < SO_WIDTH; y++){
-            printf("\x1B[30m");
+            printf(" \x1B[30m");
             switch (master_map[x][y]){
                 case 0:
                     printf("\x1B[101m");
@@ -622,7 +614,7 @@ void print_master_map(){
                         printf(" %d ", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
                         printf("\x1B[0m");
                     } else {
-                        printf("  -  ");
+                        printf("\x1b[47m - \x1B[0m");
                     }
                     break;
                 case 2:
@@ -637,7 +629,6 @@ void print_master_map(){
                     }
                     break;
                 default:
-                    printf(" E ");
                     break;
             }
         }
