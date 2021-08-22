@@ -596,7 +596,6 @@ void master_handle_signal(int signum){
 
 void print_master_map(){
     int x , y;
-        printf(" ");
 
     printf("\nSecondo: %d\n", execution_time);
     for ( x = 0; x < SO_HEIGHT; x++){
