@@ -71,6 +71,7 @@ void master_cap_map_free();
 void master_timensec_map_free();
 void master_process_array_free();
 void master_free_all();
+void free_ipcs();
 
 int main(int argc, char *argv[]){
     setup();
@@ -83,14 +84,6 @@ int main(int argc, char *argv[]){
 
     //all the processes are generated and ready to run
     run();
-    
-    //print last map and final stats
-    print_master_map();
-    //so-top-cells
-    print_stats();
-
-    master_free_all();
-    //free ipcs
 }
 
 void setup(){
@@ -585,8 +578,8 @@ void master_handle_signal(int signum){
             break;
         case SIGINT:
             printf("\nChiudo i processi attivi\n");
-            exit_simulation();
-            alarm(0);
+            atexit(exit_simulation);
+            exit(EXIT_SUCCESS);
             break;
         default:
             printf("\nSegnale %d non gestito\n", signum);
@@ -638,6 +631,12 @@ void print_master_map(){
 
 void exit_simulation(){
     int i;
+
+    //print last map and final stats
+    print_master_map();
+    //so-top-cells
+    print_stats();
+
     for (i = 0; i < SO_TAXI; i++){
         if (taxis_pid_array[i] > 0){
             kill(taxis_pid_array[i], SIGINT);
@@ -649,6 +648,8 @@ void exit_simulation(){
             kill(sources_pid_array[i], SIGINT);
         }
     }
+    master_free_all();
+    free_ipcs();
 }
 
 void run(){
@@ -669,7 +670,7 @@ void run(){
 }
 
 void print_stats(){
-
+    printf("Statistiche della simulazione:\n");
 
 } 
 
@@ -703,4 +704,32 @@ void master_free_all(){
     master_cap_map_free();
     master_timensec_map_free();
     master_process_array_free();
+}
+
+void free_ipcs(){
+    //message queue
+    while (msgctl(msgqueue_id, IPC_RMID, NULL)) {
+		TEST_ERROR;
+	}
+
+    //semaphores
+    for(int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
+        semctl(sem_cells_cap_id, i, IPC_RMID);
+    }
+    semctl(sem_sync_id, 0, IPC_RMID);
+    semctl(sem_sync_id, 1, IPC_RMID);
+
+    //shared memory
+    if (shmdt(shd_mem_to_source) == -1) {
+        fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (shmdt(shd_mem_to_taxi) == -1) {
+        fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (shmdt(shd_mem_returned_stats) == -1) {
+        fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 }
