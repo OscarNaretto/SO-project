@@ -73,6 +73,7 @@ void master_process_array_free();
 void master_free_all();
 void free_ipcs();
 void memory_cleanup();
+void processes_kill();
 
 int main(int argc, char *argv[]){
     setup();
@@ -578,14 +579,11 @@ void master_handle_signal(int signum){
             }
             break;
         case SIGINT:
-            printf("\nChiudo i processi attivi\n");
             //print last map and final stats
-            //print_master_map();
+            print_master_map();
             //so-top-cells
             //print_stats();
             atexit(exit_simulation);
-            //atexit(print_stats);
-            atexit(print_master_map);
             exit(EXIT_SUCCESS);
             break;
         default:
@@ -638,25 +636,16 @@ void print_master_map(){
 }
 
 void exit_simulation(){
-    int i;
-
-    for (i = 0; i < SO_TAXI; i++){
-        if (taxis_pid_array[i] > 0){
-            kill(taxis_pid_array[i], SIGINT);
-        }
-    }
-
-    for (i = 0; i < SO_SOURCES; i++){
-        if (sources_pid_array[i] > 0){
-            kill(sources_pid_array[i], SIGINT);
-        }
-    }
+    
+    processes_kill();
+    
     memory_cleanup();
 }
 
 void run(){
     pid_t terminatedPid;
     int status;
+    
     //using a one sec alarm to print the map
     alarm(1);
 
@@ -747,5 +736,23 @@ void free_ipcs(){
 
 void memory_cleanup(){
     master_free_all();
+    printf("\nMemoria dinamica deallocata\n");
     free_ipcs();
+    printf("\nIPCS deallocati\n");
+}
+
+void processes_kill(){
+    int i;
+    for (i = 0; i < SO_TAXI; i++){
+        if (taxis_pid_array[i] > 0){
+            kill(taxis_pid_array[i], SIGINT);
+        }
+    }
+
+    for (i = 0; i < SO_SOURCES; i++){
+        if (sources_pid_array[i] > 0){
+            kill(sources_pid_array[i], SIGINT);
+        }
+    }
+    printf("\nProcessi attivi eliminati\n");
 }

@@ -90,9 +90,6 @@ void taxi_signal_handler(int signum){
     switch (signum){
     case SIGINT:
         ride_stats();
-        sops[0].sem_num = (x * SO_WIDTH) + y; 
-        sops[0].sem_op = 1;
-        semop(taxi_sem_cells_cap_id, sops, 1);
         taxi_free_all();
         exit(TAXI_ABORTED);
         break;
@@ -119,13 +116,11 @@ void taxi_maps_generator(){
 
     taxi_timensec_map = (long int **)malloc(SO_HEIGHT * sizeof(long int *));
     if(taxi_timensec_map == NULL){
-        taxi_map_free();
         allocation_error("Taxi", "taxi_timensec_map");
     }
     for (x = 0; x < SO_HEIGHT; x++){
        taxi_timensec_map[x] = malloc(SO_WIDTH*sizeof(long int));
        if(taxi_timensec_map == NULL){
-           taxi_map_free();
            allocation_error("Taxi","taxi_timensec_map");
        }
     }
@@ -156,6 +151,10 @@ void taxi_timensec_map_free(){
 }
 
 void taxi_free_all(){
+    sops[0].sem_num = (x * SO_WIDTH) + y; 
+    sops[0].sem_op = 1;
+    semop(taxi_sem_cells_cap_id, sops, 1);
+
     taxi_map_free();
     taxi_timensec_map_free();
 }
@@ -165,9 +164,6 @@ void customer_research(){
         taxi_ride();
     } else {
         ride_stats();
-        sops[0].sem_num = (x * SO_WIDTH) + y; 
-        sops[0].sem_op = 1;
-        semop(taxi_sem_cells_cap_id, sops, 0);
         taxi_free_all();
         exit(REPLACE_TAXI);
     }
