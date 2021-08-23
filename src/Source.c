@@ -121,20 +121,20 @@ void source_set_maps(){
 }
 
 void source_call_taxi(){
-    int X, y_to_go, acceptable = 0;
+    int x_to_go, y_to_go, acceptable = 0;
     srand(getpid());
 
     while (acceptable){
-        X = rand() % SO_HEIGHT;
+        x_to_go = rand() % SO_HEIGHT;
         y_to_go = rand() % SO_WIDTH;
 
-        if(source_map[X][y_to_go] != 0 && (x != X || y != y_to_go)){
+        if(source_map[x_to_go][y_to_go] != 0 && (x != x_to_go || y != y_to_go)){
             acceptable = 1;
         }
     }
     
     my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
-    sprintf(my_msgbuf.mtext, "%d", (X * SO_WIDTH) + y_to_go);
+    sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
     msgsnd(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, 0);
     TEST_ERROR;
 }
