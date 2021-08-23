@@ -63,7 +63,6 @@ void taxi_processes_regenerator(pid_t to_regen);
 void master_signal_actions();
 void master_handle_signal(int signum);
 void print_master_map();
-void exit_simulation();
 void run();
 void print_stats();
 void master_map_free();
@@ -74,6 +73,7 @@ void master_free_all();
 void free_ipcs();
 void memory_cleanup();
 void processes_kill();
+void load_top_cells();
 
 int main(int argc, char *argv[]){
     setup();
@@ -86,6 +86,9 @@ int main(int argc, char *argv[]){
 
     //all the processes are generated and ready to run
     run();
+
+    atexit(memory_cleanup);
+    exit(EXIT_SUCCESS);
 }
 
 void setup(){
@@ -304,7 +307,7 @@ void msgqueue_generator(){
 
 void semaphore_generator(){
     //semaphore set for each cell; stores cell capability; matrix as an array
-    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH, IPC_CREAT | IPC_EXCL| 0666);
+    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT*SO_WIDTH, IPC_CREAT | IPC_EXCL| 0666);
     TEST_ERROR;
 
     for(int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
@@ -482,7 +485,6 @@ void taxi_processes_generator(){
 void taxi_processes_regenerator(pid_t to_regen){
     int i, x, y, generated = 0, k; 
     char *taxi_args[10];
-
     for (k = 0; k <= 9; k++){
         taxi_args[k] = malloc(30 * sizeof(char));
     }
@@ -550,18 +552,14 @@ void master_signal_actions(){
     sigaddset(&mask, SIGALRM);
     sigaddset(&mask, SIGINT);
 
-    sigprocmask(SIG_BLOCK, &mask, NULL);
-    
     sa_alarm.sa_mask = mask;
     sa_int.sa_mask = mask;
 
     sa_alarm.sa_handler = master_handle_signal;
-    sa_alarm.sa_flags =  SA_RESTART;
+    sa_alarm.sa_flags = SA_RESTART;
     
     sa_int.sa_handler = master_handle_signal; 
     sa_int.sa_flags = 0;
-
-    sigprocmask(SIG_UNBLOCK, &mask, NULL);
     
     sigaction(SIGINT, &sa_int, NULL);
     sigaction(SIGALRM, &sa_alarm, NULL);
@@ -579,12 +577,11 @@ void master_handle_signal(int signum){
             }
             break;
         case SIGINT:
-            //print last map and final stats
+            load_top_cells();
             print_master_map();
-            //so-top-cells
             //print_stats();
-            atexit(exit_simulation);
-            exit(EXIT_SUCCESS);
+            processes_kill();
+            alarm(0);
             break;
         default:
             printf("\nSegnale %d non gestito\n", signum);
@@ -596,7 +593,7 @@ void print_master_map(){
     int x , y;
     
     printf("\nPID MASTER: %d\n", getpid());
-    printf("\nSecondo: %d\n", execution_time);
+    printf("Secondo: %d\n", execution_time);
     for ( x = 0; x < SO_HEIGHT; x++){
         for ( y = 0; y < SO_WIDTH; y++){
             printf(" \x1B[30m");
@@ -626,6 +623,11 @@ void print_master_map(){
                         printf("\x1B[0m");
                     }
                     break;
+                case -1:
+                    //top cells
+
+
+
                 default:
                     break;
             }
@@ -633,13 +635,6 @@ void print_master_map(){
         printf("\n\n");
     }
     printf("\x1B[0m");
-}
-
-void exit_simulation(){
-    
-    processes_kill();
-    
-    memory_cleanup();
 }
 
 void run(){
@@ -736,9 +731,9 @@ void free_ipcs(){
 
 void memory_cleanup(){
     master_free_all();
-    printf("\nMemoria dinamica deallocata\n");
+    printf("Memoria dinamica deallocata\n");
     free_ipcs();
-    printf("\nIPCS deallocati\n");
+    printf("IPCS deallocati\n");
 }
 
 void processes_kill(){
@@ -755,4 +750,8 @@ void processes_kill(){
         }
     }
     printf("\nProcessi attivi eliminati\n");
+}
+
+void load_top_cells(){
+
 }

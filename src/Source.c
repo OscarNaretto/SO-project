@@ -7,14 +7,14 @@ int SO_INIT_REQUESTS;
 int **source_map;
 
 //coordinates
-int x, y;
-int x_to_go, y_to_go;
+int x = 0, y = 0;
+int x_to_go = 0, y_to_go = 0;
 
 //message queue
-int source_msgqueue_id;
+int msgqueue_id;
 
 //semaphores
-int source_sem_sync_id;
+int sem_sync_id;
 
 //shared memory
 source_value_struct *source_shd_mem;
@@ -34,8 +34,9 @@ int main(int argc, char *argv[]){
     }
     x = atoi(argv[1]);
     y = atoi(argv[2]);
-    source_msgqueue_id = atoi(argv[3]);
-    source_sem_sync_id = atoi(argv[4]);
+
+    msgqueue_id = atoi(argv[3]);
+    sem_sync_id = atoi(argv[4]);
     source_shd_mem_id = atoi(argv[5]);
     SO_INIT_REQUESTS = atoi(argv[6]);
     source_shd_mem = (source_value_struct *)shmat(source_shd_mem_id, NULL, 0);
@@ -43,7 +44,7 @@ int main(int argc, char *argv[]){
 
     source_set_maps;
     source_signal_actions;
-    processes_sync(source_sem_sync_id);
+    processes_sync(sem_sync_id);
     
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
         source_call_taxi();
@@ -127,21 +128,20 @@ void source_call_taxi(){
         x_to_go = rand() % SO_HEIGHT;
         y_to_go = rand() % SO_WIDTH;
 
-        if(source_map[x_to_go][y_to_go] != 0 && (x != x_to_go || y != y_to_go)){
+        if(source_map[x_to_go][y_to_go] != 0){
             acceptable = 1;
         }
     }
-    
     my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
     sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
-    msgsnd(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, 0);
+    msgsnd(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, 0);
     TEST_ERROR;
 }
 
 int check_message_for_exit(){
     int num_bytes;
 
-    num_bytes = msgrcv(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
+    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
     if (num_bytes > 0){
         //reading msg
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
@@ -150,7 +150,7 @@ int check_message_for_exit(){
         //resending msg
         my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
         sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
-        msgsnd(source_msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, IPC_NOWAIT);
+        msgsnd(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, IPC_NOWAIT);
         TEST_ERROR;
 
         return 1;

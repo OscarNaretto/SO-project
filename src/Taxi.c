@@ -8,15 +8,15 @@ int **taxi_map;
 long int **taxi_timensec_map;
 
 //coordinates
-int x, y;
-int x_to_go, y_to_go;
+int x = 0, y = 0;
+int x_to_go = 0, y_to_go = 0;
 
 //message queue
 int msgqueue_id;
 
 //semaphores
-int taxi_sem_sync_id;
-int taxi_sem_cells_cap_id;
+int sem_sync_id;
+int sem_cells_cap_id;
 struct sembuf sops[2];
 
 //shared memory
@@ -48,12 +48,20 @@ int main(int argc, char *argv[]){
 
     x = atoi(argv[1]); 
     y = atoi(argv[2]);
+    if (x >= SO_HEIGHT){
+        printf("Errore in Xt\n");
+        exit(EXIT_FAILURE);
+    }
+    if (y >= SO_WIDTH){
+        printf("Errore in Yt\n");
+        exit(EXIT_FAILURE);
+    }
 
     timeout.tv_sec = atoi(argv[3]);
 
     msgqueue_id = atoi(argv[4]);
-    taxi_sem_sync_id = atoi(argv[5]);
-    taxi_sem_cells_cap_id = atoi(argv[6]);
+    sem_sync_id = atoi(argv[5]);
+    sem_cells_cap_id = atoi(argv[6]);
 
     shd_mem_taxi = shmat(atoi(argv[7]), NULL, 0);
     TEST_ERROR;
@@ -63,7 +71,7 @@ int main(int argc, char *argv[]){
 
     taxi_maps_generator();
     taxi_signal_actions();
-    processes_sync(taxi_sem_sync_id);
+    processes_sync(sem_sync_id);
 
     while (1) {
         customer_research();
@@ -153,7 +161,7 @@ void taxi_timensec_map_free(){
 void taxi_free_all(){
     sops[0].sem_num = (x * SO_WIDTH) + y; 
     sops[0].sem_op = 1;
-    semop(taxi_sem_cells_cap_id, sops, 1);
+    semop(sem_cells_cap_id, sops, 1);
 
     taxi_map_free();
     taxi_timensec_map_free();
@@ -161,6 +169,7 @@ void taxi_free_all(){
 
 void customer_research(){
     if(check_msg(x,y)){ 
+        printf("messaggio raccolto\n");
         taxi_ride();
     } else {
         ride_stats();
@@ -181,7 +190,9 @@ int check_msg(int x, int y){
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
         sigprocmask(SIG_UNBLOCK, &masked, NULL);
-        return 1;
+        if (x < SO_HEIGHT && y < SO_WIDTH){  
+            return 1;
+        }  
     } else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
@@ -200,7 +211,7 @@ int in_bounds(int x, int y){
 }
 
 void taxi_ride(){
-    int mov_choice, trip_time = 0, crossed_cells = 0, moving = 1;
+    int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0, res = -1;
     struct timespec timer;
     timer.tv_sec = 0;
 
@@ -208,41 +219,49 @@ void taxi_ride(){
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
 
-    while(moving){
+    while(!arrived){
+        printf("comincio a muovermi\n");
+
         sops[0].sem_num = (x * SO_WIDTH) + y;
+        printf(" parte da x = %d, y = %d\n", x, y);
         if (y == y_to_go && x == x_to_go){
-            moving = 0;
-        } else if (x < x_to_go){
-            if (in_bounds(x + 1, y)){
-                x++;
-                mov_choice = 0;
-            }
-        } else if (x > x_to_go){
-            if (in_bounds(x - 1, y)){
-                x--;
-                mov_choice = 1;
-            }
-        } else if (y < y_to_go){
-            if (in_bounds(x, y + 1)){
-                y++;
-                mov_choice = 2;
-            }
-        } else if (y > y_to_go){
-            if (in_bounds(x, y - 1)){
-                y--;
-                mov_choice = 3;
-            }
+            printf("arrivato?\n");
+            arrived = 1;
+        } else if (x < x_to_go && in_bounds(x + 1, y)){
+            x++;
+            mov_choice = 0;
+            printf("choice %d\n", mov_choice);
+        } else if (x > x_to_go && in_bounds(x - 1, y)){
+            x--;
+            mov_choice = 1;
+            printf("choice %d\n", mov_choice);
+        } else if (y < y_to_go && in_bounds(x, y + 1)){
+            y++;
+            mov_choice = 2;
+            printf("choice %d\n", mov_choice);
+        } else if (y > y_to_go && in_bounds(x, y - 1)){
+            y--;
+            mov_choice = 3;
+            printf("choice %d\n", mov_choice);
+        } else {
+            printf("sono fermo??\n\n");
         }
 
-        if(moving){
+        if(!arrived){
+            printf("semtimedop\n");
             sops[1].sem_num = (x * SO_WIDTH) + y;
-            if(semtimedop(taxi_sem_cells_cap_id, sops, 2, &timeout) == -1){
+            printf(" vado in x = %d, y = %d\n", x, y);
+
+            if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
                     //over timeout
+                    printf("timeout?\n");
                     raise(SIGINT);
                 } else if(errno != EINTR && errno != EAGAIN){
+                    printf("errore?\n\n\n\n\\n");  
                     TEST_ERROR;
                 } else {
+                    printf("riavvolgo?\n");
                     switch (mov_choice){
                         case 0:
                             x--;
@@ -265,29 +284,32 @@ void taxi_ride(){
                 crossed_cells++;
                 nanosleep(&timer, NULL);
             }
+        } else {
+            printf("Passeggero a destinazione\n\n\n\n");
         }
     }
+    
     taxi_completed_trips++;
     if (crossed_cells > shd_mem_returned_stats->longest_trip) {
-        shdmem_return_sem_reserve(taxi_sem_sync_id);
+        shdmem_return_sem_reserve(sem_sync_id);
         shd_mem_returned_stats->longest_trip = crossed_cells;
         shd_mem_returned_stats->pid_longest_trip = getpid();
-        shdmem_return_sem_release(taxi_sem_sync_id);
+        shdmem_return_sem_release(sem_sync_id);
     }
     if (trip_time > shd_mem_returned_stats->slowest_trip) {
-        shdmem_return_sem_reserve(taxi_sem_sync_id);
+        shdmem_return_sem_reserve(sem_sync_id);
         shd_mem_returned_stats->slowest_trip = trip_time;
         shd_mem_returned_stats->pid_slowest_trip = getpid();
-        shdmem_return_sem_release(taxi_sem_sync_id);
+        shdmem_return_sem_release(sem_sync_id);
     } 
 }
 
 void ride_stats(){
-    shdmem_return_sem_reserve(taxi_sem_sync_id);
+    shdmem_return_sem_reserve(sem_sync_id);
     shd_mem_returned_stats->trips_completed += taxi_completed_trips;
     if (taxi_completed_trips > shd_mem_returned_stats->max_trips_completed){
         shd_mem_returned_stats->max_trips_completed = taxi_completed_trips;
         shd_mem_returned_stats->pid_max_trips_completed = getpid();
     }
-    shdmem_return_sem_release(taxi_sem_sync_id);
+    shdmem_return_sem_release(sem_sync_id);
 }
