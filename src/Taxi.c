@@ -38,7 +38,7 @@ void customer_research();
 int check_msg(int x, int y);
 int in_bounds(int x, int y);
 void taxi_ride();
-void travel_information();
+void ride_stats();
 
 int main(int argc, char *argv[]){
     if(argc != 9){
@@ -89,7 +89,7 @@ void taxi_signal_actions(){
 void taxi_signal_handler(int signum){
     switch (signum){
     case SIGINT:
-        //stats update   
+        ride_stats();
         sops[0].sem_num = (x * SO_WIDTH) + y; 
         sops[0].sem_op = 1;
         semop(taxi_sem_cells_cap_id, sops, 1);
@@ -164,10 +164,10 @@ void customer_research(){
     if(check_msg(x,y)){ 
         taxi_ride();
     } else {
+        ride_stats();
         sops[0].sem_num = (x * SO_WIDTH) + y; 
         sops[0].sem_op = 1;
         semop(taxi_sem_cells_cap_id, sops, 0);
-        //stats
         taxi_free_all();
         exit(REPLACE_TAXI);
     }
@@ -204,7 +204,7 @@ int in_bounds(int x, int y){
 }
 
 void taxi_ride(){
-    int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0;
+    int mov_choice, trip_time = 0, crossed_cells = 0, moving = 1;
     struct timespec timer;
     timer.tv_sec = 0;
 
@@ -212,10 +212,10 @@ void taxi_ride(){
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
 
-    while(!arrived){
+    while(moving){
         sops[0].sem_num = (x * SO_WIDTH) + y;
         if (y == y_to_go && x == x_to_go){
-            arrived = 1;
+            moving = 0;
         } else if (x < x_to_go){
             if (in_bounds(x + 1, y)){
                 x++;
@@ -238,7 +238,7 @@ void taxi_ride(){
             }
         }
 
-        if(!arrived){
+        if(moving){
             sops[1].sem_num = (x * SO_WIDTH) + y;
             if(semtimedop(taxi_sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
@@ -286,9 +286,12 @@ void taxi_ride(){
     } 
 }
 
-void travel_information(){
+void ride_stats(){
     shdmem_return_sem_reserve(taxi_sem_sync_id);
-    //shd_mem_returned_stats->max_trips_completed = shd_mem_returned_stats->max_trips_completed + shd_mem_returned_stats->trips_completed;
-    /*code*/
+    shd_mem_returned_stats->trips_completed += taxi_completed_trips;
+    if (taxi_completed_trips > shd_mem_returned_stats->max_trips_completed){
+        shd_mem_returned_stats->max_trips_completed = taxi_completed_trips;
+        shd_mem_returned_stats->pid_max_trips_completed = getpid();
+    }
     shdmem_return_sem_release(taxi_sem_sync_id);
 }
