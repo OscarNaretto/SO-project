@@ -596,7 +596,8 @@ void master_handle_signal(int signum){
 
 void print_master_map(){
     int x , y;
-
+    
+    printf("\nPID MASTER: %d\n", getpid());
     printf("\nSecondo: %d\n", execution_time);
     for ( x = 0; x < SO_HEIGHT; x++){
         for ( y = 0; y < SO_WIDTH; y++){
