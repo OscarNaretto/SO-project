@@ -584,7 +584,7 @@ void master_handle_signal(int signum){
             //so-top-cells
             //print_stats();
             atexit(exit_simulation);
-            atexit(print_stats);
+            //atexit(print_stats);
             atexit(print_master_map);
             exit(EXIT_SUCCESS);
             break;
