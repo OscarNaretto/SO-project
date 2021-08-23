@@ -578,8 +578,8 @@ void master_handle_signal(int signum){
             break;
         case SIGINT:
             printf("\nChiudo i processi attivi\n");
-            atexit(exit_simulation);
-            exit(EXIT_SUCCESS);
+            exit_simulation();
+            alarm(0);
             break;
         default:
             printf("\nSegnale %d non gestito\n", signum);
