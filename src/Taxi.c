@@ -13,7 +13,6 @@ int x_to_go, y_to_go;
 
 //message queue
 int msgqueue_id;
-struct msgbuf my_msgbuf;
 
 //semaphores
 int taxi_sem_sync_id;
