@@ -72,6 +72,7 @@ void master_timensec_map_free();
 void master_process_array_free();
 void master_free_all();
 void free_ipcs();
+void memory_cleanup();
 
 int main(int argc, char *argv[]){
     setup();
@@ -578,8 +579,14 @@ void master_handle_signal(int signum){
             break;
         case SIGINT:
             printf("\nChiudo i processi attivi\n");
-            exit_simulation();
-            alarm(0);
+            //print last map and final stats
+            //print_master_map();
+            //so-top-cells
+            //print_stats();
+            atexit(exit_simulation);
+            atexit(print_stats);
+            atexit(print_master_map);
+            exit(EXIT_SUCCESS);
             break;
         default:
             printf("\nSegnale %d non gestito\n", signum);
@@ -633,11 +640,6 @@ void print_master_map(){
 void exit_simulation(){
     int i;
 
-    //print last map and final stats
-    print_master_map();
-    //so-top-cells
-    print_stats();
-
     for (i = 0; i < SO_TAXI; i++){
         if (taxis_pid_array[i] > 0){
             kill(taxis_pid_array[i], SIGINT);
@@ -649,8 +651,7 @@ void exit_simulation(){
             kill(sources_pid_array[i], SIGINT);
         }
     }
-    master_free_all();
-    free_ipcs();
+    memory_cleanup();
 }
 
 void run(){
@@ -671,8 +672,17 @@ void run(){
 }
 
 void print_stats(){
+    shdmem_return_sem_reserve(sem_sync_id);
+    unresolved_trips = total_requests - shd_mem_returned_stats->trips_completed;
     printf("Statistiche della simulazione:\n");
-
+    printf("\n\nEsecuzione conclusa. La durata totale è di %d secondi\n", execution_time);
+    printf("Numero totali di viaggi eseguiti con successo: %d\n", shd_mem_returned_stats->trips_completed);
+    printf("Numero totali di viaggi inevasi: %d\n", unresolved_trips);
+    printf("Numero totali di viaggi abortiti: %d\n", aborted_trips);
+    printf("Il taxi con PID %d ha percorso più celle di tutti, per un totale di %d celle\n", shd_mem_returned_stats->pid_longest_trip, shd_mem_returned_stats->longest_trip);
+    printf("Il taxi con PID %d ha impiegato un tempo maggiore di tutti gli altri, per un totale di %f secondi\n", shd_mem_returned_stats->pid_slowest_trip, shd_mem_returned_stats->slowest_trip/(double)1000000000);
+    printf("Il taxi con PID %d ha raccolto il numero maggiore di clienti, per un totale di %d richieste\n", shd_mem_returned_stats->pid_max_trips_completed, shd_mem_returned_stats->max_trips_completed);
+    shdmem_return_sem_release(sem_sync_id);
 } 
 
 void master_map_free(){
@@ -733,4 +743,9 @@ void free_ipcs(){
         fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
         exit(EXIT_FAILURE);
     }
+}
+
+void memory_cleanup(){
+    master_free_all();
+    free_ipcs();
 }

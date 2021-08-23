@@ -90,7 +90,7 @@ void source_handle_signal(int signum){
             }
             break;
         case SIGINT:
-            source_map_free();
+            atexit(source_map_free);
             exit(EXIT_SUCCESS);
             break;
         default:
