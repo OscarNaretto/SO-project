@@ -12,7 +12,6 @@ int x_to_go, y_to_go;
 
 //message queue
 int source_msgqueue_id;
-struct msgbuf my_msgbuf;
 
 //semaphores
 int source_sem_sync_id;
@@ -39,7 +38,6 @@ int main(int argc, char *argv[]){
     source_sem_sync_id = atoi(argv[4]);
     source_shd_mem_id = atoi(argv[5]);
     SO_INIT_REQUESTS = atoi(argv[6]);
-
     source_shd_mem = (source_value_struct *)shmat(source_shd_mem_id, NULL, 0);
     TEST_ERROR;
 
