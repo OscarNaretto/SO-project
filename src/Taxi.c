@@ -60,6 +60,10 @@ int main(int argc, char *argv[]){
     timeout.tv_sec = atoi(argv[3]);
 
     msgqueue_id = atoi(argv[4]);
+    if (msgqueue_id == -1){
+    printf("msgget error");
+    }
+
     sem_sync_id = atoi(argv[5]);
     sem_cells_cap_id = atoi(argv[6]);
 
@@ -91,7 +95,9 @@ void taxi_signal_actions(){
     sa_int.sa_flags = 0;
 
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
-    sigaction(SIGINT, &sa_int, NULL);
+    if(sigaction(SIGINT, &sa_int, NULL) == -1){
+        TEST_ERROR;
+    }
 }
 
 void taxi_signal_handler(int signum){
@@ -185,7 +191,8 @@ int check_msg(int x, int y){
     sigfillset(&masked);
     sigprocmask(SIG_BLOCK, &masked, NULL);
 
-    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);    
+    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
+
     if (num_bytes > 0){
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
@@ -193,7 +200,29 @@ int check_msg(int x, int y){
         if (x < SO_HEIGHT && y < SO_WIDTH){  
             return 1;
         }  
-    } else if (num_bytes <= 0 && errno!=ENOMSG){
+    }
+
+    /*else if(num_bytes <= 0){
+        printf("msgrcv error\n");
+        exit(0);
+    }
+
+    else if (errno == EINTR) {
+		printf("the process caught a signal while sleeping\n");
+        exit(0);
+		}
+
+    else if (errno == EIDRM) {
+		printf("La coda di messagi (id: %d ) è stata rimossa\n", msgqueue_id);
+		exit(0);
+		}
+
+	/*else if (errno == ENOMSG) {
+		printf("Errore durante la lettura del messaggio: %d", errno);
+		exit(0);
+	}*/
+
+     else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
         sigprocmask(SIG_UNBLOCK, &masked, NULL);
