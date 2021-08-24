@@ -65,7 +65,9 @@ int main(int argc, char *argv[]){
     }
 
     sem_sync_id = atoi(argv[5]);
+    TEST_ERROR;
     sem_cells_cap_id = atoi(argv[6]);
+    TEST_ERROR;
 
     shd_mem_taxi = shmat(atoi(argv[7]), NULL, 0);
     TEST_ERROR;
@@ -200,32 +202,16 @@ int check_msg(int x, int y){
         if (x < SO_HEIGHT && y < SO_WIDTH){  
             return 1;
         }  
-    }
-
-    /*else if(num_bytes <= 0){
-        printf("msgrcv error\n");
-        exit(0);
-    }
-
-    else if (errno == EINTR) {
+    }else if (num_bytes <= 0 && errno!=ENOMSG){
+        printf("Errore durante la lettura del messaggio: %d", errno);
+    }else if (errno == EINTR) {
 		printf("the process caught a signal while sleeping\n");
         exit(0);
-		}
-
-    else if (errno == EIDRM) {
+	}else if (errno == EIDRM) {
 		printf("La coda di messagi (id: %d ) è stata rimossa\n", msgqueue_id);
 		exit(0);
 		}
-
-	else if (errno == ENOMSG) {
-		printf("Errore durante la lettura del messaggio: %d", errno);
-		exit(0);
-	}*/
-
-     else if (num_bytes <= 0 && errno!=ENOMSG){
-        printf("Errore durante la lettura del messaggio: %d", errno);
-    }
-        sigprocmask(SIG_UNBLOCK, &masked, NULL);
+    sigprocmask(SIG_UNBLOCK, &masked, NULL);
 
     return 0;
 }
