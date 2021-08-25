@@ -730,10 +730,10 @@ void free_ipcs(){
 }
 
 void memory_cleanup(){
-    master_free_all();
-    printf("Memoria dinamica deallocata\n");
     free_ipcs();
     printf("IPCS deallocati\n");
+    master_free_all();
+    printf("Memoria dinamica deallocata\n");
 }
 
 void processes_kill(){

@@ -52,6 +52,7 @@ int main(int argc, char *argv[]){
         printf("Errore in Xt\n");
         exit(EXIT_FAILURE);
     }
+    
     if (y >= SO_WIDTH){
         printf("Errore in Yt\n");
         exit(EXIT_FAILURE);
@@ -61,7 +62,7 @@ int main(int argc, char *argv[]){
 
     msgqueue_id = atoi(argv[4]);
     if (msgqueue_id == -1){
-    printf("msgget error");
+        printf("msgget error");
     }
 
     sem_sync_id = atoi(argv[5]);
@@ -177,7 +178,6 @@ void taxi_free_all(){
 
 void customer_research(){
     if(check_msg(x,y)){ 
-        printf("messaggio raccolto\n");
         taxi_ride();
     } else {
         ride_stats();
@@ -236,48 +236,35 @@ void taxi_ride(){
     sops[1].sem_op = -1; 
 
     while(!arrived){
-        printf("comincio a muovermi\n");
-
         sops[0].sem_num = (x * SO_WIDTH) + y;
-        printf(" parte da x = %d, y = %d\n", x, y);
         if (y == y_to_go && x == x_to_go){
-            printf("arrivato?\n");
             arrived = 1;
         } else if (x < x_to_go && in_bounds(x + 1, y)){
             x++;
             mov_choice = 0;
-            printf("choice %d\n", mov_choice);
         } else if (x > x_to_go && in_bounds(x - 1, y)){
             x--;
             mov_choice = 1;
-            printf("choice %d\n", mov_choice);
         } else if (y < y_to_go && in_bounds(x, y + 1)){
             y++;
             mov_choice = 2;
-            printf("choice %d\n", mov_choice);
         } else if (y > y_to_go && in_bounds(x, y - 1)){
             y--;
             mov_choice = 3;
-            printf("choice %d\n", mov_choice);
         } else {
-            printf("sono fermo??\n\n");
         }
 
         if(!arrived){
-            printf("semtimedop\n");
             sops[1].sem_num = (x * SO_WIDTH) + y;
             printf(" vado in x = %d, y = %d\n", x, y);
 
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
                     //over timeout
-                    printf("timeout?\n");
                     raise(SIGINT);
                 } else if(errno != EINTR && errno != EAGAIN){
-                    printf("errore?\n\n\n\n\\n");  
                     TEST_ERROR;
                 } else {
-                    printf("riavvolgo?\n");
                     switch (mov_choice){
                         case 0:
                             x--;
@@ -300,9 +287,7 @@ void taxi_ride(){
                 crossed_cells++;
                 nanosleep(&timer, NULL);
             }
-        } else {
-            printf("Passeggero a destinazione\n\n\n\n");
-        }
+        } 
     }
     
     taxi_completed_trips++;

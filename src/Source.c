@@ -23,7 +23,7 @@ int source_shd_mem_id;
 void source_set_maps();
 void source_signal_actions();
 void source_handle_signal(int signum);
-void source_call_taxi();
+void source_send_request();
 int check_message_for_exit();
 void source_map_free();
 
@@ -47,14 +47,13 @@ int main(int argc, char *argv[]){
     processes_sync(sem_sync_id);
     
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
-        source_call_taxi();
+        source_send_request();
     }
     
     raise(SIGALRM);
     while (1) {
         pause();
     }
-    
 }
 
 void source_signal_actions(){
@@ -92,6 +91,7 @@ void source_handle_signal(int signum){
             }
             break;
         case SIGINT:
+            alarm(0);
             atexit(source_map_free);
             exit(EXIT_SUCCESS);
             break;
@@ -120,11 +120,11 @@ void source_set_maps(){
     shmdt(source_shd_mem);
 }
 
-void source_call_taxi(){
+void source_send_request(){
     int x_to_go, y_to_go, acceptable = 0;
-    srand(getpid());
+    srand(time(NULL));
 
-    while (acceptable){
+    while (!acceptable){
         x_to_go = rand() % SO_HEIGHT;
         y_to_go = rand() % SO_WIDTH;
 
