@@ -107,14 +107,14 @@ void source_send_request(){
 
     my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
     sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
-    msgsnd(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, 0);
+    msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
     TEST_ERROR;
 }
 
 int check_message_for_exit(){
     int num_bytes;
 
-    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
+    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
     if (num_bytes > 0){
         //reading msg
         printf(" prima è x = %d, y = %d\n", x_to_go, y_to_go);
@@ -124,7 +124,7 @@ int check_message_for_exit(){
         //resending msg
         my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
         sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
-        msgsnd(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, IPC_NOWAIT);
+        msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, IPC_NOWAIT);
         TEST_ERROR;
 
         return 1;

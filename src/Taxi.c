@@ -26,7 +26,7 @@ int taxi_completed_trips = 0;
 
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
-void taxi_free_all();
+void taxi_cleanup();
 void customer_research();
 int check_msg();
 int in_bounds(int x_check, int y_check);
@@ -71,15 +71,6 @@ int main(int argc, char *argv[]){
 
     taxi_signal_actions();
     processes_sync(sem_sync_id);
-    printf("TAXI MAP SHD\n");
-        for (int i = 0; i <SO_HEIGHT; i++){
-            for (int j = 0; j <SO_WIDTH; j++){
-                printf(" %d ", (taxi_shd_mem + i * SO_WIDTH + j)->cell_value);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    
     
     while (1) {
         customer_research();
@@ -108,7 +99,7 @@ void taxi_signal_handler(int signum){
     switch (signum){
     case SIGINT:
         ride_stats();
-        taxi_free_all();
+        taxi_cleanup();
         exit(TAXI_ABORTED);
         break;
     default:
@@ -117,7 +108,7 @@ void taxi_signal_handler(int signum){
     }
 }
 
-void taxi_free_all(){
+void taxi_cleanup(){
     sops[0].sem_num = (x * SO_WIDTH) + y; 
     sops[0].sem_op = 1;
     semop(sem_cells_cap_id, sops, 1);
@@ -131,20 +122,22 @@ void customer_research(){
         taxi_ride();
     } else {
         ride_stats();
-        taxi_free_all();
+        taxi_cleanup();
         exit(REPLACE_TAXI);
     }
 }
 
 int check_msg(){
-    if (msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT) > 0){
+    if (msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT) >= 0){
+            printf("Message reading %d\n", (taxi_shd_mem + x * SO_WIDTH + y)->cell_value);
+
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
+
         return 1;
     } else if (errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
-
 
     return 0;
 }
@@ -155,7 +148,6 @@ int in_bounds(int x_check, int y_check){
             return 1;
         }
     }
-    
     printf("inbounds false\n");
     return 0;
 }
@@ -165,7 +157,6 @@ void taxi_ride(){
     struct timespec timer;
     timer.tv_sec = 0;
     //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
-    
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
     while(!arrived){
@@ -175,28 +166,22 @@ void taxi_ride(){
         if (x == x_to_go && y == y_to_go){
             arrived = 1;
             printf("Arrivato\n");
-        } else if (x < x_to_go){
-            if (in_bounds(x + 1, y)){
+        } else if (x < x_to_go && in_bounds(x + 1, y)){
                 x++;
                 mov_choice = 0;
                 printf("mossa 0\n");
-            }
-
         } else if (x > x_to_go && in_bounds(x - 1, y)){
             x--;
             mov_choice = 1;
-                                    printf("mossa 1\n");
-
+            printf("mossa 1\n");
         } else if (y < y_to_go && in_bounds(x, y + 1)){
             y++;
             mov_choice = 2;
-                                    printf("mossa 2\n");
-
+            printf("mossa 2\n");
         } else if (y > y_to_go && in_bounds(x, y - 1)){
             y--;
             mov_choice = 3;
-                                    printf("mossa 3\n");
-
+            printf("mossa 3\n");
         }
 
         if(!arrived){

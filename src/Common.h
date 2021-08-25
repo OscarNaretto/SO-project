@@ -35,8 +35,7 @@
 					   errno,\
 					   strerror(errno));exit(-1);}
 
-#define MSG_MAX_SIZE 128
-#define MSGMAX  4056  /* <= 4056 */   /* max size of message (bytes) */
+#define MSG_LEN 128
 
 //Struttura del buffer per i messaggi
 struct msgbuf my_msgbuf;
