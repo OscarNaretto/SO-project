@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
         source_send_request();
     }
-    raise(SIGALRM);
+    //raise(SIGALRM);
     while (1) {
         pause();
     }
@@ -102,18 +102,21 @@ void source_handle_signal(int signum){
 
 void source_set_maps(){
     int i, j, offset = 0;
-    
     source_map = (int **)malloc(SO_HEIGHT * sizeof(int *));
-    if (source_map == NULL){ allocation_error("Source", "source_map"); }
+    if (source_map == NULL){
+        allocation_error("Source", "source_map");
+    }
     for (i = 0; i < SO_HEIGHT; i++){
         source_map[i] = malloc(SO_WIDTH * sizeof(int));
         if (source_map[i] == NULL){
             allocation_error("Source", "source_map");
-        } else {
-            for (j = 0; j < SO_WIDTH; j++){
-                source_map[i][j] = source_shd_mem[offset].cell_value;
-                offset++;
-            }
+        }
+    }
+
+    for (i = 0; i < SO_HEIGHT; i++){
+        for(j = 0; j < SO_WIDTH; j++){
+            source_map[i][j] = source_shd_mem[offset].cell_value; 
+            offset++;
         }
     }
     shmdt(source_shd_mem);
@@ -125,15 +128,18 @@ void source_send_request(){
     while (!acceptable){
         x_to_go = rand() % SO_HEIGHT;
         y_to_go = rand() % SO_WIDTH;
-        //printf(" dopo è x = %d, y = %d\n", x_to_go, y_to_go);
+        printf("scrivo msg in x = %d, y = %d\n", x_to_go, y_to_go);
+
         if(source_map[x_to_go][y_to_go] != 0){
             acceptable = 1;
         }
     }
+
     my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
     sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
     msgsnd(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, 0);
     TEST_ERROR;
+    printf("SCRITTO");
 }
 
 int check_message_for_exit(){
@@ -142,10 +148,8 @@ int check_message_for_exit(){
     num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
     if (num_bytes > 0){
         //reading msg
-        printf(" prima è x = %d, y = %d\n", x_to_go, y_to_go);
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
-        printf(" dopo è x = %d, y = %d\n", x_to_go, y_to_go);
         //resending msg
         my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
         sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);

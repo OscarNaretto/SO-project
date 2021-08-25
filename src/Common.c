@@ -26,8 +26,8 @@ void shdmem_return_sem_reserve(int sem_id){
     sops.sem_num = 1; 
     sops.sem_op = -1; 
     sops.sem_flg = 0;
-    while(semop(sem_id, &sops, 1) == -1){
-        if(errno != EINTR){ TEST_ERROR; }
+    if(semop(sem_id, &sops, 1) == -1 && errno != EINTR){
+       TEST_ERROR;
     }
 }
 void shdmem_return_sem_release(int sem_id){
@@ -36,7 +36,7 @@ void shdmem_return_sem_release(int sem_id){
     sops.sem_num = 1;
     sops.sem_op = 1;
     sops.sem_flg = 0;
-    while(semop(sem_id, &sops, 1) == -1){
-        if(errno != EINTR) { TEST_ERROR; }
+    if(semop(sem_id, &sops, 1) == -1 && errno != EINTR){
+       TEST_ERROR;
     }
 }

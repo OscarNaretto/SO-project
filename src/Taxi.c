@@ -186,22 +186,18 @@ void customer_research(){
 
 int check_msg(int x, int y){
     int num_bytes;
-    sigset_t masked;
 
-    sigfillset(&masked);
-    sigprocmask(SIG_BLOCK, &masked, NULL);
+    sigfillset(&mask);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
 
     num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
     //printf(" bytes: %d\n", num_bytes);
     if (num_bytes > 0){
-        printf(" prima è x = %d, y = %d\n", x_to_go, y_to_go);
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
+        sigprocmask(SIG_UNBLOCK, &mask, NULL);
         printf(" dopo è x = %d, y = %d\n", x_to_go, y_to_go);
-        sigprocmask(SIG_UNBLOCK, &masked, NULL);
-        if (x < SO_HEIGHT && y < SO_WIDTH){  
-            return 1;
-        }  
+        return 1;
     }else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }else if (errno == EINTR) {
@@ -211,7 +207,7 @@ int check_msg(int x, int y){
 		printf("La coda di messagi (id: %d ) è stata rimossa\n", msgqueue_id);
 		exit(0);
 		}
-    sigprocmask(SIG_UNBLOCK, &masked, NULL);
+    sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
     return 0;
 }
@@ -233,7 +229,7 @@ void taxi_ride(){
     //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
-printf("    CI SONO\n");
+    printf("    CI SONO\n");
     while(!arrived){
         sops[0].sem_num = (x * SO_WIDTH) + y;
         //printf(" parte da x = %d, y = %d\n", x, y);
