@@ -18,7 +18,7 @@ int SO_INIT_REQUESTS_MAX  = -1;
 //maps
 int **master_map;
 int **master_cap_map;
-long int **master_timensec_map;
+
 
 //message queue
 int msgqueue_id; 
@@ -67,7 +67,6 @@ void run();
 void print_stats();
 void master_map_free();
 void master_cap_map_free();
-void master_timensec_map_free();
 void master_process_array_free();
 void master_free_all();
 void free_ipcs();
@@ -93,6 +92,8 @@ int main(int argc, char *argv[]){
 
 void setup(){
     int i;
+    srand(getpid());
+
     //parameters reading and check
     read_parameters();
 
@@ -232,20 +233,6 @@ void master_maps_generator(){
             }
         }        
     }
-
-    //memory allocation of maximum cell waiting time
-    master_timensec_map = (long int **)malloc(SO_HEIGHT * sizeof(long int *));
-    if (master_timensec_map == NULL){ allocation_error("Master", "master_timensec_map"); }
-    for (i = 0; i < SO_HEIGHT; i++){
-        master_timensec_map[i] = malloc(SO_WIDTH * sizeof(long int));
-        if (master_timensec_map[i] == NULL){
-            allocation_error("Master", "master_timensec_map");
-        } else {
-            for (j = 0; j < SO_WIDTH; j++){
-                master_timensec_map[i][j] = rand() % (SO_TIMENSEC_MAX + 1 - SO_TIMENSEC_MIN) + SO_TIMENSEC_MIN;
-            }
-        }
-    }
 }
 
 void master_map_initialization(){
@@ -306,14 +293,18 @@ void msgqueue_generator(){
 }
 
 void semaphore_generator(){
+    int offset = 0;
     //semaphore set for each cell; stores cell capability; matrix as an array
-    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT*SO_WIDTH, IPC_CREAT | IPC_EXCL| 0666);
+    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH, IPC_CREAT | IPC_EXCL| 0666);
     TEST_ERROR;
 
-    for(int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
-        arg.val = master_cap_map[i / SO_WIDTH][i % SO_WIDTH];
-        semctl(sem_cells_cap_id, i, SETVAL, arg);
-        TEST_ERROR;
+    for(int x = 0; x < SO_HEIGHT; x++){
+        for(int y = 0; y < SO_WIDTH; y++){
+            arg.val = master_cap_map[x][y];
+            semctl(sem_cells_cap_id, offset, SETVAL, arg);
+            TEST_ERROR;
+            offset++;
+        } 
     } 
 
     //semaphore set used in order to sync processes and ipcs usage
@@ -366,7 +357,7 @@ void shd_memory_initialization(){
         for(y = 0; y < SO_WIDTH; y++){
             (shd_mem_to_source + offset)->cell_value = master_map[x][y];
             (shd_mem_to_taxi+offset)->cell_value = master_map[x][y];
-            (shd_mem_to_taxi+offset)->cell_timensec_value = master_timensec_map[x][y];
+            (shd_mem_to_taxi+offset)->cell_timensec_value = rand() % (SO_TIMENSEC_MAX + 1 - SO_TIMENSEC_MIN) + SO_TIMENSEC_MIN;
             shd_mem_returned_stats->top_cells_map[x][y] = 0;
             offset++;
         }
@@ -429,7 +420,6 @@ void taxi_processes_generator(){
     for (k = 0; k <= 9; k++){
         taxi_args[k] = malloc(30 * sizeof(char));
     }
-    srand(getpid());
 
     for (i = 0; i < SO_TAXI; i++){
         generated = 0;
@@ -486,7 +476,6 @@ void taxi_processes_regenerator(pid_t to_regen){
     for (k = 0; k <= 9; k++){
         taxi_args[k] = malloc(30 * sizeof(char));
     }
-    srand(getpid());
 
     for(i = 0; i < SO_TAXI; i++){
         if(taxis_pid_array[i] == to_regen){
@@ -681,12 +670,6 @@ void master_cap_map_free(){
     free(master_cap_map);
 }
 
-void master_timensec_map_free(){
-    for (int i = 0; i < SO_HEIGHT; i++){
-        free(master_timensec_map[i]);
-    }
-    free(master_timensec_map);
-}
 void master_process_array_free(){
     free(taxis_pid_array);
     free(sources_pid_array);
@@ -695,7 +678,6 @@ void master_process_array_free(){
 void master_free_all(){
     master_map_free();
     master_cap_map_free();
-    master_timensec_map_free();
     master_process_array_free();
 }
 

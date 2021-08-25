@@ -3,10 +3,6 @@
 //parameters
 struct timespec timeout;
 
-//maps
-int **taxi_map;
-long int **taxi_timensec_map;
-
 //coordinates
 int x = 0, y = 0;
 int x_to_go = 0, y_to_go = 0;
@@ -20,7 +16,7 @@ int sem_cells_cap_id;
 struct sembuf sops[2];
 
 //shared memory
-taxi_value_struct *shd_mem_taxi; 
+taxi_value_struct *taxi_shd_mem;
 
 //signals
 sigset_t mask;
@@ -30,9 +26,6 @@ int taxi_completed_trips = 0;
 
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
-void taxi_maps_generator();
-void taxi_map_free();
-void taxi_timensec_map_free();
 void taxi_free_all();
 void customer_research();
 int check_msg();
@@ -70,16 +63,23 @@ int main(int argc, char *argv[]){
     sem_cells_cap_id = atoi(argv[6]);
     TEST_ERROR;
 
-    shd_mem_taxi = shmat(atoi(argv[7]), NULL, 0);
+    taxi_shd_mem = shmat(atoi(argv[7]), NULL, 0);
     TEST_ERROR;
     
     shd_mem_returned_stats = shmat(atoi(argv[8]), NULL, 0);
     TEST_ERROR;
 
-    taxi_maps_generator();
     taxi_signal_actions();
     processes_sync(sem_sync_id);
-
+    printf("TAXI MAP SHD\n");
+        for (int i = 0; i <SO_HEIGHT; i++){
+            for (int j = 0; j <SO_WIDTH; j++){
+                printf(" %d ", (taxi_shd_mem + i * SO_WIDTH + j)->cell_value);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    
     
     while (1) {
         customer_research();
@@ -117,68 +117,17 @@ void taxi_signal_handler(int signum){
     }
 }
 
-void taxi_maps_generator(){
-    int x, y;
-    int offset = 0;
-
-    taxi_map = (int **)malloc(SO_HEIGHT * sizeof(int*));
-    if(taxi_map == NULL){
-        allocation_error("Taxi", "taxi_map");
-    }
-    for(x = 0; x < SO_HEIGHT; x++){
-        taxi_map[x] = malloc(SO_WIDTH * sizeof(int));
-        if(taxi_map[x] == NULL){
-           allocation_error("Taxi", "taxi_map"); 
-        }
-    }
-
-    taxi_timensec_map = (long int **)malloc(SO_HEIGHT * sizeof(long int *));
-    if(taxi_timensec_map == NULL){
-        allocation_error("Taxi", "taxi_timensec_map");
-    }
-    for (x = 0; x < SO_HEIGHT; x++){
-       taxi_timensec_map[x] = malloc(SO_WIDTH*sizeof(long int));
-       if(taxi_timensec_map == NULL){
-           allocation_error("Taxi","taxi_timensec_map");
-       }
-    }
-
-    for (x = 0; x < SO_HEIGHT; x++){
-        for(y = 0; y < SO_WIDTH; y++){
-            taxi_map[x][y] = (shd_mem_taxi + offset)->cell_value;
-            taxi_timensec_map[x][y] = (shd_mem_taxi + offset)->cell_timensec_value;
-            offset++;
-        }
-    }
-    shmdt(shd_mem_taxi);
-}
-
-void taxi_map_free(){
-    for (int i = 0; i < SO_HEIGHT; i++){
-        free(taxi_map[i]);
-    }
-    free(taxi_map);
-}
-
-void taxi_timensec_map_free(){
-    for (int i = 0; i < SO_HEIGHT; i++){
-        free(taxi_timensec_map[i]);
-    }
-    free(taxi_timensec_map);
-}
-
 void taxi_free_all(){
     sops[0].sem_num = (x * SO_WIDTH) + y; 
     sops[0].sem_op = 1;
     semop(sem_cells_cap_id, sops, 1);
 
-    taxi_map_free();
-    taxi_timensec_map_free();
-
+    shmdt(taxi_shd_mem);
+    shmdt(shd_mem_returned_stats);
 }
 
 void customer_research(){
-    if(taxi_map[x][y] == 2 && check_msg()){ 
+    if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2 && check_msg()){ 
         taxi_ride();
     } else {
         ride_stats();
@@ -188,34 +137,25 @@ void customer_research(){
 }
 
 int check_msg(){
-    int num_bytes;
-    sigfillset(&mask);
-    sigprocmask(SIG_BLOCK, &mask, NULL);
-
-    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
-    if (num_bytes > 0){
-        printf("x_to_st = %d, y_to_st = %d\n", x, y);
-
+    if (msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT) > 0){
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
-
-        sigprocmask(SIG_UNBLOCK, &mask, NULL);
         return 1;
-    }else if (num_bytes <= 0 && errno!=ENOMSG){
+    } else if (errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
-    sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
 
     return 0;
 }
-
 int in_bounds(int x_check, int y_check){
     if (x_check >= 0 && x_check < SO_HEIGHT && y_check >= 0 && y_check < SO_WIDTH){
-        if(taxi_map[x_check][y_check] != 0){
+        if((taxi_shd_mem + x_check * SO_WIDTH + y_check)->cell_value != 0){
                 printf("inbounds true\n");
             return 1;
         }
     }
+    
     printf("inbounds false\n");
     return 0;
 }
@@ -285,8 +225,8 @@ void taxi_ride(){
                 }
             } else {
                 shd_mem_returned_stats->top_cells_map[x][y]++;
-                trip_time += taxi_timensec_map[x][y];
-                timer.tv_nsec = taxi_timensec_map[x][y];
+                trip_time += (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
+                timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
                 crossed_cells++;
                 nanosleep(&timer, NULL);
             }

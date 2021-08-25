@@ -3,9 +3,6 @@
 //parameters
 int SO_INIT_REQUESTS;
 
-//map
-int **source_map;
-
 //coordinates
 int x = 0, y = 0;
 int x_to_go = 0, y_to_go = 0;
@@ -20,12 +17,11 @@ int sem_sync_id;
 source_value_struct *source_shd_mem;
 int source_shd_mem_id;
 
-void source_set_maps();
 void source_signal_actions();
 void source_handle_signal(int signum);
 void source_send_request();
 int check_message_for_exit();
-void source_map_free();
+void source_cleanup();
 
 int main(int argc, char *argv[]){
     if(argc != 7){
@@ -42,7 +38,6 @@ int main(int argc, char *argv[]){
     source_shd_mem = (source_value_struct *)shmat(source_shd_mem_id, NULL, 0);
     TEST_ERROR;
 
-    source_set_maps();
     source_signal_actions();
     processes_sync(sem_sync_id);
     
@@ -90,7 +85,7 @@ void source_handle_signal(int signum){
             break;
         case SIGINT:
             //alarm(0);
-            atexit(source_map_free);
+            atexit(source_cleanup);
             exit(EXIT_SUCCESS);
             break;
         default:
@@ -99,31 +94,13 @@ void source_handle_signal(int signum){
     }
 }
 
-void source_set_maps(){
-    int i, j, offset = 0;
-    source_map = (int **)malloc(SO_HEIGHT * sizeof(int *));
-    if (source_map == NULL){ allocation_error("Source", "source_map"); }
-    for (i = 0; i < SO_HEIGHT; i++){
-        source_map[i] = malloc(SO_WIDTH * sizeof(int));
-        if (source_map[i] == NULL){
-            allocation_error("Source", "source_map");
-        }else{
-            for (j = 0; j < SO_WIDTH; j++){
-                source_map[i][j] = source_shd_mem[offset].cell_value;
-                offset++;
-            }
-        }
-    }
-    shmdt(source_shd_mem);
-}
-
 void source_send_request(){
     int x_to_go, y_to_go, acceptable = 0;
     srand(getpid());
     while (!acceptable){
         x_to_go = rand() % SO_HEIGHT;
         y_to_go = rand() % SO_WIDTH;
-        if(source_map[x_to_go][y_to_go] != 0){
+        if((source_shd_mem + x * SO_WIDTH + y)->cell_value != 0){
             acceptable = 1;
         }
     }
@@ -157,9 +134,6 @@ int check_message_for_exit(){
     return 0;
 }
 
-void source_map_free(){
-    for (int i = 0; i < SO_HEIGHT; i++){
-        free(source_map[i]);
-    }
-    free(source_map);
+void source_cleanup(){
+    shmdt(source_shd_mem);
 }
