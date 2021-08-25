@@ -25,6 +25,7 @@
 
 #define REPLACE_TAXI 11
 #define TAXI_ABORTED 12
+#define TOP_CELLS_VALUE 123
 
 
 #define TEST_ERROR    if (errno) {fprintf(stderr, \

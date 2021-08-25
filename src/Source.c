@@ -44,9 +44,11 @@ int main(int argc, char *argv[]){
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
         source_send_request();
     }
+
     raise(SIGALRM);
+
     while (1) {
-        pause();
+        //pause();
     }
 }
 
@@ -78,14 +80,14 @@ void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
             /*if(check_message_for_exit()){
-                alarm(1);
+                alarm(5);
             } else {
                 raise(SIGINT);
             }*/
             break;
         case SIGINT:
-            //alarm(0);
-            atexit(source_cleanup);
+            alarm(0);
+            source_cleanup();
             exit(EXIT_SUCCESS);
             break;
         default:
@@ -104,11 +106,9 @@ void source_send_request(){
             acceptable = 1;
         }
     }
-
     my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
     sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
     msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
-    TEST_ERROR;
 }
 
 int check_message_for_exit(){
@@ -117,16 +117,12 @@ int check_message_for_exit(){
     num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
     if (num_bytes > 0){
         //reading msg
-        printf(" prima è x = %d, y = %d\n", x_to_go, y_to_go);
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
-        printf(" dopo è x = %d, y = %d\n", x_to_go, y_to_go);
         //resending msg
         my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
         sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
-        msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, IPC_NOWAIT);
-        TEST_ERROR;
-
+        msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
         return 1;
     } else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);

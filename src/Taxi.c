@@ -28,9 +28,9 @@ void taxi_signal_actions();
 void taxi_signal_handler(int signum);
 void taxi_cleanup();
 void customer_research();
-int check_message();
+void request_check();
 int in_bounds(int x_check, int y_check);
-void taxi_ride();
+int taxi_ride();
 void ride_stats();
 
 int main(int argc, char *argv[]){
@@ -86,7 +86,6 @@ void taxi_signal_actions(){
 void taxi_signal_handler(int signum){
     switch (signum){
     case SIGINT:
-        ride_stats();
         taxi_cleanup();
         exit(TAXI_ABORTED);
         break;
@@ -97,6 +96,8 @@ void taxi_signal_handler(int signum){
 }
 
 void taxi_cleanup(){
+    ride_stats();
+
     sops[0].sem_num = (x * SO_WIDTH) + y; 
     sops[0].sem_op = 1;
     semop(sem_cells_cap_id, sops, 1);
@@ -106,26 +107,39 @@ void taxi_cleanup(){
 }
 
 void customer_research(){
-    if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2 && check_message()){ 
-        taxi_ride();
-    } else {
-        ride_stats();
-        taxi_cleanup();
-        exit(REPLACE_TAXI);
+    if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2){ 
+        request_check();
     }
 }
 
-int check_message(){
-    if (msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT) >= 0){
+void request_check(){
+    int num_bytes, received = 0, x_s = x, y_s = y;
+
+    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x_s * SO_WIDTH) + y_s) + 1, IPC_NOWAIT);
+    if (num_bytes >= 0){
+        printf("sem id -> %d \n",sem_cells_cap_id); //already lost here
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
-
-        return 1;
+        received = 1;
     } else if (errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
-
-    return 0;
+    
+    if(received){
+        if(!taxi_ride()){
+            //resend
+            my_msgbuf.mtype = (x_s * SO_WIDTH) + y_s + 1;
+            sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
+            msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
+            printf("RINVIO\n");
+            raise(SIGINT);
+        } else {
+            taxi_completed_trips++;
+        }
+    } else {
+        taxi_cleanup();
+        exit(REPLACE_TAXI);
+    }
 }
 int in_bounds(int x_check, int y_check){
     if (x_check >= 0 && x_check < SO_HEIGHT && y_check >= 0 && y_check < SO_WIDTH){
@@ -134,7 +148,7 @@ int in_bounds(int x_check, int y_check){
     return 0;
 }
 
-void taxi_ride(){
+int taxi_ride(){
     int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0, res = -1;
     struct timespec timer;
     timer.tv_sec = 0;
@@ -143,42 +157,32 @@ void taxi_ride(){
     sops[1].sem_op = -1; 
     while(!arrived){
         sops[0].sem_num = (x * SO_WIDTH) + y;
-        //printf("Valore semaforo di partenza -> %d\n", semctl(sem_cells_cap_id, (x * SO_WIDTH) + y, GETVAL));
-        //printf("Valore coordinate di partenza -> %d\n", (x * SO_WIDTH) + y);
-
-        //printf("Parto da %d %d \n", x, y);
-
         if (x == x_to_go && y == y_to_go){
             arrived = 1;
-            //printf("Arrivato\n");
         } else if (x < x_to_go && in_bounds(x + 1, y)){
             x++;
             mov_choice = 0;
-            //printf("mossa 0\n");
         } else if (x > x_to_go && in_bounds(x - 1, y)){
             x--;
             mov_choice = 1;
-            //printf("mossa 1\n");
         } else if (y < y_to_go && in_bounds(x, y + 1)){
             y++;
             mov_choice = 2;
-            //printf("mossa 2\n");
         } else if (y > y_to_go && in_bounds(x, y - 1)){
             y--;
             mov_choice = 3;
-            //printf("mossa 3\n");
         }
         if(!arrived){
             sops[1].sem_num = (x * SO_WIDTH) + y;
-                    //printf("Arrivo a %d %d \n", x, y);
-            //printf("Valore semaforo di arrivo -> %d", semctl(sem_cells_cap_id, (x * SO_WIDTH) + y, GETVAL));
-            //printf("Valore coordinate di arrivo -> %d\n", (x * SO_WIDTH) + y);
+            //printf("ARRIVATOOOOO\n");
+            //printf("sem val ->  %d \n",semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL));
+            //printf("sem id -> %d \n",sem_cells_cap_id);
 
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 //printf("SEMERROR\n");
                 if(errno == EAGAIN){
                     //over timeout
-                    raise(SIGINT);
+                    return 0;
                 } else if(errno != EINTR && errno != EAGAIN){
                     TEST_ERROR;
                 } else {
@@ -208,7 +212,6 @@ void taxi_ride(){
         } 
     }
     
-    taxi_completed_trips++;
     if (crossed_cells > shd_mem_returned_stats->longest_trip) {
         shdmem_return_sem_reserve(sem_sync_id);
         shd_mem_returned_stats->longest_trip = crossed_cells;
@@ -221,6 +224,7 @@ void taxi_ride(){
         shd_mem_returned_stats->pid_slowest_trip = getpid();
         shdmem_return_sem_release(sem_sync_id);
     } 
+    return 1;
 }
 
 void ride_stats(){
