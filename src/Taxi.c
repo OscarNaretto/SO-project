@@ -28,7 +28,7 @@ void taxi_signal_actions();
 void taxi_signal_handler(int signum);
 void taxi_cleanup();
 void customer_research();
-int check_msg();
+int check_message();
 int in_bounds(int x_check, int y_check);
 void taxi_ride();
 void ride_stats();
@@ -106,7 +106,7 @@ void taxi_cleanup(){
 }
 
 void customer_research(){
-    if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2 && check_msg()){ 
+    if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2 && check_message()){ 
         taxi_ride();
     } else {
         ride_stats();
@@ -115,7 +115,7 @@ void customer_research(){
     }
 }
 
-int check_msg(){
+int check_message(){
     if (msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT) >= 0){
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;

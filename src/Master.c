@@ -85,7 +85,7 @@ int main(int argc, char *argv[]){
     
     //all the processes are generated and ready to run
     run();
-
+    
     memory_cleanup();
     return 0;
 }
@@ -294,14 +294,14 @@ int can_be_placed(int x, int y){
 }
 
 void msgqueue_generator(){
-    msgqueue_id = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0666);
+    msgqueue_id = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0600);
     TEST_ERROR;
 }
 
 void semaphore_generator(){
     int offset = 0;
     //semaphore set for each cell; stores cell capability; matrix as an array
-    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH, IPC_CREAT | IPC_EXCL| 0666);
+    sem_cells_cap_id = semget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH, IPC_CREAT | IPC_EXCL| 0600);
     TEST_ERROR;
 
     for(int x = 0; x < SO_HEIGHT; x++){
@@ -314,7 +314,7 @@ void semaphore_generator(){
     } 
 
     //semaphore set used in order to sync processes and ipcs usage
-    sem_sync_id = semget(IPC_PRIVATE, 2, IPC_CREAT | IPC_EXCL | 0666);
+    sem_sync_id = semget(IPC_PRIVATE, 2, IPC_CREAT | IPC_EXCL | 0600);
     TEST_ERROR;
 
     //processes sync semaphore
@@ -330,19 +330,19 @@ void semaphore_generator(){
 
 void shd_memory_generator(){
     //shd_mem used to pass master_map values to source processes
-    shd_mem_to_source_id = shmget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH * sizeof(source_value_struct), IPC_CREAT | IPC_EXCL | 0666);
+    shd_mem_to_source_id = shmget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH * sizeof(source_value_struct), IPC_CREAT | IPC_EXCL | 0600);
     TEST_ERROR;
     shd_mem_to_source = shmat(shd_mem_to_source_id, NULL, 0);
     TEST_ERROR;
 
     //shd_mem used to pass master_map values and timensec_map values to taxi processes
-    shd_mem_to_taxi_id = shmget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH * sizeof(taxi_value_struct), IPC_CREAT | IPC_EXCL | 0666);
+    shd_mem_to_taxi_id = shmget(IPC_PRIVATE, SO_HEIGHT * SO_WIDTH * sizeof(taxi_value_struct), IPC_CREAT | IPC_EXCL | 0600);
     TEST_ERROR;
     shd_mem_to_taxi = shmat(shd_mem_to_taxi_id, NULL, 0);
     TEST_ERROR;
     
     //shd_mem to return taxi stats
-    shd_mem_returned_stats_id = shmget(IPC_PRIVATE, sizeof(returned_stats), IPC_CREAT | IPC_EXCL | 0666);
+    shd_mem_returned_stats_id = shmget(IPC_PRIVATE, sizeof(returned_stats), IPC_CREAT | IPC_EXCL | 0600);
     TEST_ERROR;
     shd_mem_returned_stats = shmat(shd_mem_returned_stats_id, NULL, 0);
     TEST_ERROR;
@@ -368,10 +368,6 @@ void shd_memory_initialization(){
             offset++;
         }
     }
-
-    shmctl(shd_mem_to_source_id, IPC_RMID, NULL);
-    shmctl(shd_mem_to_taxi_id, IPC_RMID, NULL);
-    shmctl(shd_mem_returned_stats_id, IPC_RMID, NULL);
 }
 
 void source_processes_generator(){
@@ -692,6 +688,7 @@ void master_free_all(){
 }
 
 void free_ipcs(){
+    
     //message queue
     while (msgctl(msgqueue_id, IPC_RMID, NULL)) {
 		TEST_ERROR;
@@ -699,12 +696,17 @@ void free_ipcs(){
 
     //semaphores
     for(int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
+
         semctl(sem_cells_cap_id, i, IPC_RMID);
     }
     semctl(sem_sync_id, 0, IPC_RMID);
     semctl(sem_sync_id, 1, IPC_RMID);
 
     //shared memory
+    shmctl(shd_mem_to_source_id, IPC_RMID, NULL);
+    shmctl(shd_mem_to_taxi_id, IPC_RMID, NULL);
+    shmctl(shd_mem_returned_stats_id, IPC_RMID, NULL);
+
     if (shmdt(shd_mem_to_source) == -1) {
         fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
         exit(EXIT_FAILURE);
