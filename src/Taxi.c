@@ -35,7 +35,7 @@ void taxi_map_free();
 void taxi_timensec_map_free();
 void taxi_free_all();
 void customer_research();
-int check_msg(int x_check, int y_check);
+int check_msg();
 int in_bounds(int x_check, int y_check);
 void taxi_ride();
 void ride_stats();
@@ -178,7 +178,7 @@ void taxi_free_all(){
 }
 
 void customer_research(){
-    if(check_msg(x,y)){ 
+    if(taxi_map[x][y] == 2 && check_msg()){ 
         taxi_ride();
     } else {
         ride_stats();
@@ -187,16 +187,18 @@ void customer_research(){
     }
 }
 
-int check_msg(int x_check, int y_check){
+int check_msg(){
     int num_bytes;
     sigfillset(&mask);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
-    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x_check * SO_WIDTH) + y_check) + 1, IPC_NOWAIT);
+    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
     if (num_bytes > 0){
-        printf("post if %d\n", taxi_timensec_map[x][y]);
+        printf("x_to_st = %d, y_to_st = %d\n", x, y);
+
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
+
         sigprocmask(SIG_UNBLOCK, &mask, NULL);
         return 1;
     }else if (num_bytes <= 0 && errno!=ENOMSG){
