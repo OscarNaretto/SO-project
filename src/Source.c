@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
         source_send_request();
     }
-    alarm(5);
+    raise(SIGALRM);
     while (1) {
         pause();
     }
@@ -58,7 +58,6 @@ int main(int argc, char *argv[]){
 void source_signal_actions(){
     struct sigaction sa_alarm, sa_int;
     sigset_t mask;
-
     sigemptyset(&mask); 
     sigaddset(&mask, SIGALRM);
     sigaddset(&mask, SIGINT);
@@ -141,8 +140,10 @@ int check_message_for_exit(){
     num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
     if (num_bytes > 0){
         //reading msg
+        printf(" prima è x = %d, y = %d\n", x_to_go, y_to_go);
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
+        printf(" dopo è x = %d, y = %d\n", x_to_go, y_to_go);
         //resending msg
         my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
         sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
