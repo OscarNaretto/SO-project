@@ -42,14 +42,14 @@ int main(int argc, char *argv[]){
     source_shd_mem = (source_value_struct *)shmat(source_shd_mem_id, NULL, 0);
     TEST_ERROR;
 
-    source_set_maps;
-    source_signal_actions;
+    source_set_maps();
+    source_signal_actions();
     processes_sync(sem_sync_id);
     
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
         source_send_request();
     }
-    //raise(SIGALRM);
+    alarm(5);
     while (1) {
         pause();
     }
@@ -84,7 +84,7 @@ void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
             /*if(check_message_for_exit()){
-                alarm(5);
+                alarm(1);
             } else {
                 raise(SIGINT);
             }*/
@@ -103,20 +103,16 @@ void source_handle_signal(int signum){
 void source_set_maps(){
     int i, j, offset = 0;
     source_map = (int **)malloc(SO_HEIGHT * sizeof(int *));
-    if (source_map == NULL){
-        allocation_error("Source", "source_map");
-    }
+    if (source_map == NULL){ allocation_error("Source", "source_map"); }
     for (i = 0; i < SO_HEIGHT; i++){
         source_map[i] = malloc(SO_WIDTH * sizeof(int));
         if (source_map[i] == NULL){
             allocation_error("Source", "source_map");
-        }
-    }
-
-    for (i = 0; i < SO_HEIGHT; i++){
-        for(j = 0; j < SO_WIDTH; j++){
-            source_map[i][j] = source_shd_mem[offset].cell_value; 
-            offset++;
+        }else{
+            for (j = 0; j < SO_WIDTH; j++){
+                source_map[i][j] = source_shd_mem[offset].cell_value;
+                offset++;
+            }
         }
     }
     shmdt(source_shd_mem);
@@ -128,8 +124,6 @@ void source_send_request(){
     while (!acceptable){
         x_to_go = rand() % SO_HEIGHT;
         y_to_go = rand() % SO_WIDTH;
-        printf("scrivo msg in x = %d, y = %d\n", x_to_go, y_to_go);
-
         if(source_map[x_to_go][y_to_go] != 0){
             acceptable = 1;
         }
@@ -139,7 +133,6 @@ void source_send_request(){
     sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
     msgsnd(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, 0);
     TEST_ERROR;
-    printf("SCRITTO");
 }
 
 int check_message_for_exit(){

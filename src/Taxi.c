@@ -196,7 +196,6 @@ int check_msg(int x, int y){
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
         sigprocmask(SIG_UNBLOCK, &mask, NULL);
-        printf(" dopo è x = %d, y = %d\n", x_to_go, y_to_go);
         return 1;
     }else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
@@ -229,11 +228,8 @@ void taxi_ride(){
     //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
-    printf("    CI SONO\n");
     while(!arrived){
         sops[0].sem_num = (x * SO_WIDTH) + y;
-        //printf(" parte da x = %d, y = %d\n", x, y);
-       // printf(" vado a x = %d, y = %d\n", x_to_go, y_to_go);
         if (y == y_to_go && x == x_to_go){
             arrived = 1;
         } else if (x < x_to_go && in_bounds(x + 1, y)){
