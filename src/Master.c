@@ -86,8 +86,8 @@ int main(int argc, char *argv[]){
     //all the processes are generated and ready to run
     run();
 
-    atexit(memory_cleanup);
-    exit(EXIT_SUCCESS);
+    memory_cleanup();
+    return 0;
 }
 
 void setup(){
@@ -227,12 +227,18 @@ void master_maps_generator(){
         master_cap_map[i] = malloc(SO_WIDTH * sizeof(int));
         if (master_cap_map[i] == NULL){
             allocation_error("Master", "master_cap_map");
-        } else {
-            for(j = 0; j < SO_WIDTH; j++){
-                master_cap_map[i][j] = rand() % (SO_CAP_MAX + 1 - SO_CAP_MIN) + SO_CAP_MIN;
-            }
-        }        
+        }       
     }
+
+    for (i = 0; i < SO_HEIGHT; i++){
+        for(j = 0; j < SO_WIDTH; j++){
+            if (master_map[i][j] == 0){
+                master_cap_map[i][j] = 0;
+            } else {
+                 master_cap_map[i][j] = rand() % (SO_CAP_MAX + 1 - SO_CAP_MIN) + SO_CAP_MIN;
+            }
+        }
+    }  
 }
 
 void master_map_initialization(){
@@ -633,11 +639,15 @@ void run(){
 
     //collect stats from exit status of taxis
     while ((terminatedPid = wait(&status)) > 0){
-        if(WEXITSTATUS(status) == TAXI_ABORTED && execution_time < SO_DURATION){
-            aborted_trips++;
-            taxi_processes_regenerator(terminatedPid);
+        if(WEXITSTATUS(status) == TAXI_ABORTED){
+            if (execution_time < SO_DURATION) {
+                aborted_trips++;
+                taxi_processes_regenerator(terminatedPid);
+            }
         } else if (WEXITSTATUS(status) == REPLACE_TAXI){
-            taxi_processes_regenerator(terminatedPid);
+            if (execution_time < SO_DURATION) {
+                taxi_processes_regenerator(terminatedPid);
+            }
         } 
     }
 }
