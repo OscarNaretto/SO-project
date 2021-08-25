@@ -83,7 +83,7 @@ int main(int argc, char *argv[]){
     sops.sem_op = 0; 
     sops.sem_flg = 0;
     semop(sem_sync_id, &sops, 1);
-
+    
     //all the processes are generated and ready to run
     run();
 
@@ -467,7 +467,6 @@ void taxi_processes_generator(){
                     
             case 0:
                 execve("bin/Taxi", taxi_args, NULL);
-    
 	            fprintf(stderr, "%s: %d. Error #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
 	            exit(EXIT_FAILURE);
                 break;

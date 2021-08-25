@@ -35,8 +35,8 @@ void taxi_map_free();
 void taxi_timensec_map_free();
 void taxi_free_all();
 void customer_research();
-int check_msg(int x, int y);
-int in_bounds(int x, int y);
+int check_msg(int x_check, int y_check);
+int in_bounds(int x_check, int y_check);
 void taxi_ride();
 void ride_stats();
 
@@ -79,6 +79,8 @@ int main(int argc, char *argv[]){
     taxi_maps_generator();
     taxi_signal_actions();
     processes_sync(sem_sync_id);
+
+    
     while (1) {
         customer_research();
     }
@@ -172,6 +174,7 @@ void taxi_free_all(){
 
     taxi_map_free();
     taxi_timensec_map_free();
+
 }
 
 void customer_research(){
@@ -184,40 +187,34 @@ void customer_research(){
     }
 }
 
-int check_msg(int x, int y){
+int check_msg(int x_check, int y_check){
     int num_bytes;
-
     sigfillset(&mask);
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
-    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x * SO_WIDTH) + y) + 1, IPC_NOWAIT);
-    //printf(" bytes: %d\n", num_bytes);
+    num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_MAX_SIZE, ((x_check * SO_WIDTH) + y_check) + 1, IPC_NOWAIT);
     if (num_bytes > 0){
+        printf("post if %d\n", taxi_timensec_map[x][y]);
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
         sigprocmask(SIG_UNBLOCK, &mask, NULL);
-        printf(" dopo è x = %d, y = %d\n", x_to_go, y_to_go);
         return 1;
     }else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
-    }else if (errno == EINTR) {
-		printf("the process caught a signal while sleeping\n");
-        exit(0);
-	}else if (errno == EIDRM) {
-		printf("La coda di messagi (id: %d ) è stata rimossa\n", msgqueue_id);
-		exit(0);
-		}
+    }
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
     return 0;
 }
 
-int in_bounds(int x, int y){
-    if (x >= 0 && x < SO_HEIGHT && y >= 0 && y < SO_WIDTH){
-        if(taxi_map[x][y] != 0){
+int in_bounds(int x_check, int y_check){
+    if (x_check >= 0 && x_check < SO_HEIGHT && y_check >= 0 && y_check < SO_WIDTH){
+        if(taxi_map[x_check][y_check] != 0){
+                printf("inbounds true\n");
             return 1;
         }
     }
+    printf("inbounds false\n");
     return 0;
 }
 
@@ -225,36 +222,43 @@ void taxi_ride(){
     int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0, res = -1;
     struct timespec timer;
     timer.tv_sec = 0;
-
     //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
+    
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
-    printf("    CI SONO\n");
     while(!arrived){
         sops[0].sem_num = (x * SO_WIDTH) + y;
-        //printf(" parte da x = %d, y = %d\n", x, y);
-       // printf(" vado a x = %d, y = %d\n", x_to_go, y_to_go);
-        if (y == y_to_go && x == x_to_go){
+        //printf(" xy: %d %d; x_dy_d: %d %d\n", x, y, x_to_go, y_to_go);
+
+        if (x == x_to_go && y == y_to_go){
             arrived = 1;
-        } else if (x < x_to_go && in_bounds(x + 1, y)){
-            x++;
-            mov_choice = 0;
+            printf("Arrivato\n");
+        } else if (x < x_to_go){
+            if (in_bounds(x + 1, y)){
+                x++;
+                mov_choice = 0;
+                printf("mossa 0\n");
+            }
+
         } else if (x > x_to_go && in_bounds(x - 1, y)){
             x--;
             mov_choice = 1;
+                                    printf("mossa 1\n");
+
         } else if (y < y_to_go && in_bounds(x, y + 1)){
             y++;
             mov_choice = 2;
+                                    printf("mossa 2\n");
+
         } else if (y > y_to_go && in_bounds(x, y - 1)){
             y--;
             mov_choice = 3;
-        } else {
+                                    printf("mossa 3\n");
+
         }
 
         if(!arrived){
             sops[1].sem_num = (x * SO_WIDTH) + y;
-            printf(" vado in x = %d, y = %d\n", x, y);
-
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
                     //over timeout
