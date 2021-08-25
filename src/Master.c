@@ -459,7 +459,6 @@ void taxi_processes_generator(){
         sprintf(taxi_args[7], "%d", shd_mem_to_taxi_id);
         sprintf(taxi_args[8], "%d", shd_mem_returned_stats_id);
         taxi_args[9] = NULL;
-        
         switch(taxis_pid_array[i] = fork()){
             case -1:
                 fprintf(stderr,"Error #%03d: %s\n", errno, strerror(errno));
@@ -579,7 +578,7 @@ void master_handle_signal(int signum){
         case SIGINT:
             load_top_cells();
             print_master_map();
-            //print_stats();
+            print_stats();
             processes_kill();
             alarm(0);
             break;
