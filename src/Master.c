@@ -35,6 +35,8 @@ int shd_mem_to_taxi_id = 0;
 int shd_mem_returned_stats_id = 0; 
 source_value_struct *shd_mem_to_source = 0;
 taxi_value_struct *shd_mem_to_taxi = 0;
+returned_stats *shd_mem_returned_stats = 0;
+
 
 //processes
 pid_t *sources_pid_array = 0;
@@ -44,7 +46,7 @@ pid_t *taxis_pid_array = 0;
 int execution_time = 0;
 int total_requests = 0;
 int unresolved_trips = 0; //unresolved_trips = total_requests - completed_trips
-int aborted_trips = 0;
+int taxi_aborted = 0;
 int taxi_replaced = 0;
 
 void setup();
@@ -86,6 +88,10 @@ int main(int argc, char *argv[]){
     //all the processes are generated and ready to run
     run();
     
+    //load_top_cells();        
+    print_master_map();
+    print_stats();
+
     memory_cleanup();
     return 0;
 }
@@ -566,9 +572,6 @@ void master_handle_signal(int signum){
             }
             break;
         case SIGINT:
-            //load_top_cells();
-            print_master_map();
-            print_stats();
             processes_kill();
             alarm(0);
             break;
@@ -627,20 +630,26 @@ void print_master_map(){
 }
 
 void run(){
-    pid_t terminatedPid;
-    int status;
+    pid_t terminatedPid = 0;
+    int status = 0;
     
     //using a one sec alarm to print the map
     alarm(1);
 
-    //collect stats from exit status of taxis
+    //collect stats from exit status of taxis or sources
     while ((terminatedPid = wait(&status)) > 0){
-        if(WEXITSTATUS(status) == TAXI_ABORTED){
-            if (execution_time < SO_DURATION) {
-                aborted_trips++;
-                taxi_processes_regenerator(terminatedPid);
+        if (WEXITSTATUS(status) == SOURCE_AUTOKILL){
+            for(int i = 0; i < SO_SOURCES; i++){
+                if(sources_pid_array[i] == terminatedPid){
+                    sources_pid_array[i] = 0;
+                    break;
+                }
             }
-        } else if (WEXITSTATUS(status) == REPLACE_TAXI){
+        } else if(WEXITSTATUS(status) == TAXI_ABORTED){
+            if (execution_time < SO_DURATION) {
+                taxi_aborted++;
+            }
+        } else if (WEXITSTATUS(status) == TAXI_REPLACED){
             if (execution_time < SO_DURATION) {
                 taxi_replaced++;
                 taxi_processes_regenerator(terminatedPid);
@@ -654,10 +663,11 @@ void print_stats(){
     unresolved_trips = total_requests - shd_mem_returned_stats->trips_completed;
     printf("Statistiche della simulazione:\n");
     printf("\n\nEsecuzione conclusa. La durata totale è di %d secondi\n", execution_time);
-    printf("Numero totali di viaggi eseguiti con successo: %d\n", shd_mem_returned_stats->trips_completed);
-    printf("Numero totali di viaggi inevasi: %d\n", unresolved_trips);
-    printf("Numero totali di viaggi abortiti: %d\n", aborted_trips);
-    printf("Numero totali di taxi sostituiti: %d\n", taxi_replaced);
+    printf("Numero totale di richieste erogate: %d\n", total_requests);
+    printf("Numero totale di viaggi eseguiti con successo: %d\n", shd_mem_returned_stats->trips_completed);
+    printf("Numero totale di viaggi inevasi: %d\n", unresolved_trips);
+    printf("Numero totale di taxi abortiti: %d\n", taxi_aborted);
+    printf("Numero totale di taxi sostituiti: %d\n", taxi_replaced);
     printf("Il taxi con PID %d ha percorso più celle di tutti, per un totale di %d celle\n", shd_mem_returned_stats->pid_longest_trip, shd_mem_returned_stats->longest_trip);
     printf("Il taxi con PID %d ha impiegato un tempo maggiore di tutti gli altri, per un totale di %f secondi\n", shd_mem_returned_stats->pid_slowest_trip, shd_mem_returned_stats->slowest_trip/(double)1000000000);
     printf("Il taxi con PID %d ha raccolto il numero maggiore di clienti, per un totale di %d richieste\n", shd_mem_returned_stats->pid_max_trips_completed, shd_mem_returned_stats->max_trips_completed);

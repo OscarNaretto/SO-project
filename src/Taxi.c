@@ -17,6 +17,7 @@ struct sembuf sops[2];
 
 //shared memory
 taxi_value_struct *taxi_shd_mem = 0;
+returned_stats *shd_mem_returned_stats = 0;
 
 //signals
 sigset_t mask;
@@ -115,29 +116,32 @@ void customer_research(){
 void request_check(){
     int num_bytes, x_s = x, y_s = y;
     long int received = 0;
+
     num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x_s * SO_WIDTH) + y_s) + 1, IPC_NOWAIT);
     if (num_bytes >= 0){
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
-        } else if (errno!=ENOMSG){
+        received = 1;
+    } else if (errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
     
-    if(!received){
+    if(received){
         if(!taxi_ride()){
             //resend
             my_msgbuf.mtype = (x_s * SO_WIDTH) + y_s + 1;
             sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
             msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
+            
             raise(SIGINT);
         } else {
-            shd_mem_returned_stats->trips_completed++;
-            
+            shdmem_return_sem_reserve(sem_sync_id);
+            shd_mem_returned_stats->trips_completed++; 
+            shdmem_return_sem_release(sem_sync_id);
         }
-        //received = 1; Vedere dove inserirla
     } else {
         taxi_cleanup();
-        exit(REPLACE_TAXI);
+        exit(TAXI_REPLACED);
     }
 }
 int in_bounds(int x_check, int y_check){
@@ -148,12 +152,13 @@ int in_bounds(int x_check, int y_check){
 }
 
 int taxi_ride(){
-    int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0, res = -1;
+    int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0;
     struct timespec timer;
     timer.tv_sec = 0;
     //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
+
     while(!arrived){
         sops[0].sem_num = (x * SO_WIDTH) + y;
         if (x == x_to_go && y == y_to_go){
@@ -173,14 +178,9 @@ int taxi_ride(){
         }
         if(!arrived){
             sops[1].sem_num = (x * SO_WIDTH) + y;
-            //printf("ARRIVATOOOOO\n");
-            //printf("sem val ->  %d \n",semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL));
-            //printf("sem id -> %d \n",sem_cells_cap_id);
-
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
-                //printf("SEMERROR\n");
                 if(errno == EAGAIN){
-                    //over timeout
+                    //timeout
                     return 0;
                 } else if(errno != EINTR && errno != EAGAIN){
                     TEST_ERROR;
@@ -227,7 +227,6 @@ int taxi_ride(){
 
 void ride_stats(){
     shdmem_return_sem_reserve(sem_sync_id);
-    shd_mem_returned_stats->trips_completed += taxi_completed_trips;
     if (taxi_completed_trips > shd_mem_returned_stats->max_trips_completed){
         shd_mem_returned_stats->max_trips_completed = taxi_completed_trips;
         shd_mem_returned_stats->pid_max_trips_completed = getpid();

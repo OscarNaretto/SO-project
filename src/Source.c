@@ -80,11 +80,13 @@ void source_signal_actions(){
 void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
-            /*if(check_message_for_exit()){
-                alarm(5);
+            if (check_message_for_exit()){
+                alarm(3);
             } else {
-                raise(SIGINT);
-            }*/
+                alarm(0);
+                source_cleanup();
+                exit(SOURCE_AUTOKILL);
+            }
             break;
         case SIGINT:
             alarm(0);

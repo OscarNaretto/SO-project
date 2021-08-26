@@ -23,9 +23,11 @@
 #define SO_WIDTH 30
 #define SO_HEIGHT 20
 
-#define REPLACE_TAXI 11
+#define TAXI_REPLACED 11
 #define TAXI_ABORTED 12
+#define SOURCE_AUTOKILL 321
 #define TOP_CELLS_VALUE 123
+
 
 
 #define TEST_ERROR    if (errno) {fprintf(stderr, \
@@ -36,7 +38,7 @@
 					   errno,\
 					   strerror(errno));exit(-1);}
 
-#define MSG_LEN 128
+#define MSG_LEN 1
 
 //Struttura del buffer per i messaggi
 struct msgbuf my_msgbuf;
@@ -63,7 +65,6 @@ typedef struct{
 	pid_t pid_slowest_trip;
 	pid_t pid_max_trips_completed;
 } returned_stats;
-returned_stats *shd_mem_returned_stats;
 
 union semun {
     int val;                 /* Value for SETVAL */
