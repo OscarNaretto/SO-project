@@ -113,22 +113,17 @@ void customer_research(){
 }
 
 void request_check(){
-    int num_bytes, received = 0, x_s = x, y_s = y;
-
+    int num_bytes, x_s = x, y_s = y;
+    long int received = 0;
     num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x_s * SO_WIDTH) + y_s) + 1, IPC_NOWAIT);
     if (num_bytes >= 0){
-        //printf("sem id -> %d \n",sem_cells_cap_id); //already lost here
-        printf("sem id -> %d \n", (taxi_shd_mem + x * SO_WIDTH + y)->cell_value); //already lost here
-
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
-        received = 1;
-
-    } else if (errno!=ENOMSG){
+        } else if (errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
     
-    if(received){
+    if(!received){
         if(!taxi_ride()){
             //resend
             my_msgbuf.mtype = (x_s * SO_WIDTH) + y_s + 1;
@@ -136,8 +131,10 @@ void request_check(){
             msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
             raise(SIGINT);
         } else {
-            taxi_completed_trips++;
+            shd_mem_returned_stats->trips_completed++;
+            
         }
+        //received = 1; Vedere dove inserirla
     } else {
         taxi_cleanup();
         exit(REPLACE_TAXI);
@@ -204,7 +201,6 @@ int taxi_ride(){
                     }
                 }
             } else {
-                printf("SEM OTTIMO\n\n\n\n\n");
                 shd_mem_returned_stats->top_cells_map[x][y]++;
                 trip_time += (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
                 timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;

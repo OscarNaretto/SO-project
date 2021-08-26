@@ -1,21 +1,21 @@
 #include "Common.h"
 
 //parameters
-int SO_INIT_REQUESTS;
+int SO_INIT_REQUESTS = 0;
 
 //coordinates
 int x = 0, y = 0;
 int x_to_go = 0, y_to_go = 0;
 
 //message queue
-int msgqueue_id;
+int msgqueue_id = 0;
 
 //semaphores
-int sem_sync_id;
+int sem_sync_id = 0;
 
 //shared memory
-source_value_struct *source_shd_mem;
-int source_shd_mem_id;
+source_value_struct *source_shd_mem = 0;
+int source_shd_mem_id = 0;
 
 void source_signal_actions();
 void source_handle_signal(int signum);

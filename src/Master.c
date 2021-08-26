@@ -16,29 +16,29 @@ int SO_INIT_REQUESTS_MIN = -1;
 int SO_INIT_REQUESTS_MAX  = -1;
 
 //maps
-int **master_map;
-int **master_cap_map;
+int **master_map = 0;
+int **master_cap_map = 0;
 
 
 //message queue
-int msgqueue_id; 
+int msgqueue_id = 0; 
 
 //semaphores
 union semun arg;
 struct sembuf sops;
-int sem_cells_cap_id;
-int sem_sync_id; 
+int sem_cells_cap_id = 0;
+int sem_sync_id = 0; 
 
 //shared memory
-int shd_mem_to_source_id;
-int shd_mem_to_taxi_id; 
-int shd_mem_returned_stats_id; 
-source_value_struct *shd_mem_to_source;
-taxi_value_struct *shd_mem_to_taxi;
+int shd_mem_to_source_id = 0;
+int shd_mem_to_taxi_id = 0; 
+int shd_mem_returned_stats_id = 0; 
+source_value_struct *shd_mem_to_source = 0;
+taxi_value_struct *shd_mem_to_taxi = 0;
 
 //processes
-pid_t *sources_pid_array;
-pid_t *taxis_pid_array;
+pid_t *sources_pid_array = 0;
+pid_t *taxis_pid_array = 0;
 
 //stats
 int execution_time = 0;
