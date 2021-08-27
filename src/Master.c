@@ -48,6 +48,7 @@ int total_requests = 0;
 int unresolved_trips = 0; //unresolved_trips = total_requests - completed_trips
 int taxi_aborted = 0;
 int taxi_replaced = 0;
+int killed_t = 0;
 
 void setup();
 void read_parameters();
@@ -592,26 +593,26 @@ void print_master_map(){
             switch (master_map[x][y]){
                 case 0:
                     printf("\x1B[101m");
-                    printf(" H ");
+                    printf(" H");
                     printf("\x1B[0m");
                     break;
                 case 1:
                     if ((master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)) > 0) {
                         printf("\x1b[43m");
-                        printf(" %d ", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
+                        printf(" %d", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
                         printf("\x1B[0m");
                     } else {
-                        printf("\x1b[47m - \x1B[0m");
+                        printf("\x1b[47m--\x1B[0m");
                     }
                     break;
                 case 2:
                     if ((master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)) > 0) {
                         printf("\x1B[102m");
-                        printf(" %d ", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
+                        printf(" %d", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
                         printf("\x1B[0m");
                     } else {
                         printf("\x1B[102m");
-                        printf(" S ");
+                        printf(" S");
                         printf("\x1B[0m");
                     }
                     break;
@@ -648,6 +649,8 @@ void run(){
         } else if(WEXITSTATUS(status) == TAXI_ABORTED){
             if (execution_time < SO_DURATION) {
                 taxi_aborted++;
+            } else {
+                killed_t ++;
             }
         } else if (WEXITSTATUS(status) == TAXI_REPLACED){
             if (execution_time < SO_DURATION) {
@@ -668,6 +671,7 @@ void print_stats(){
     printf("Numero totale di viaggi inevasi: %d\n", unresolved_trips);
     printf("Numero totale di taxi abortiti: %d\n", taxi_aborted);
     printf("Numero totale di taxi sostituiti: %d\n", taxi_replaced);
+    printf("Numero totale di taxi uccisi in chiusura: %d\n", killed_t);
     printf("Il taxi con PID %d ha percorso più celle di tutti, per un totale di %d celle\n", shd_mem_returned_stats->pid_longest_trip, shd_mem_returned_stats->longest_trip);
     printf("Il taxi con PID %d ha impiegato un tempo maggiore di tutti gli altri, per un totale di %f secondi\n", shd_mem_returned_stats->pid_slowest_trip, shd_mem_returned_stats->slowest_trip/(double)1000000000);
     printf("Il taxi con PID %d ha raccolto il numero maggiore di clienti, per un totale di %d richieste\n", shd_mem_returned_stats->pid_max_trips_completed, shd_mem_returned_stats->max_trips_completed);

@@ -84,13 +84,13 @@ void source_handle_signal(int signum){
                 alarm(3);
             } else {
                 alarm(0);
-                source_cleanup();
+                atexit(source_cleanup);
                 exit(SOURCE_AUTOKILL);
             }
             break;
         case SIGINT:
             alarm(0);
-            source_cleanup();
+            atexit(source_cleanup);
             exit(EXIT_SUCCESS);
             break;
         default:

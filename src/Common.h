@@ -20,7 +20,7 @@
 #include <time.h>
 #include <sys/sem.h>
 
-#define SO_WIDTH 30
+#define SO_WIDTH 40
 #define SO_HEIGHT 20
 
 #define TAXI_REPLACED 11

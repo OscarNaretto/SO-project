@@ -31,6 +31,7 @@ void taxi_cleanup();
 void customer_research();
 void request_check();
 int in_bounds(int x_check, int y_check);
+int choose_direction();
 int taxi_ride();
 void ride_stats();
 
@@ -151,6 +152,23 @@ int in_bounds(int x_check, int y_check){
     return 0;
 }
 
+int choose_direction(){
+    if (x < x_to_go && in_bounds(x + 1, y) && (taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value != 0){
+        x++;
+        return 0;
+    } else if (x > x_to_go && in_bounds(x - 1, y) && (taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_value != 0){
+        x--;
+        return 1;
+    } else if (y < y_to_go && in_bounds(x, y + 1) && (taxi_shd_mem + x * SO_WIDTH + y+1)->cell_value != 0){
+        y++;
+        return 2;
+    } else if (y > y_to_go && in_bounds(x, y - 1 && (taxi_shd_mem + x * SO_WIDTH + y-1)->cell_value != 0)){
+        y--;
+        return 3;
+    }
+    return -1;
+}
+
 int taxi_ride(){
     int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0;
     struct timespec timer;
@@ -163,19 +181,10 @@ int taxi_ride(){
         sops[0].sem_num = (x * SO_WIDTH) + y;
         if (x == x_to_go && y == y_to_go){
             arrived = 1;
-        } else if (x < x_to_go && in_bounds(x + 1, y)){
-            x++;
-            mov_choice = 0;
-        } else if (x > x_to_go && in_bounds(x - 1, y)){
-            x--;
-            mov_choice = 1;
-        } else if (y < y_to_go && in_bounds(x, y + 1)){
-            y++;
-            mov_choice = 2;
-        } else if (y > y_to_go && in_bounds(x, y - 1)){
-            y--;
-            mov_choice = 3;
+        } else {
+            mov_choice = choose_direction();
         }
+        
         if(!arrived){
             sops[1].sem_num = (x * SO_WIDTH) + y;
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
@@ -185,6 +194,7 @@ int taxi_ride(){
                 } else if(errno != EINTR && errno != EAGAIN){
                     TEST_ERROR;
                 } else {
+                    //revert move
                     switch (mov_choice){
                         case 0:
                             x--;
@@ -198,12 +208,16 @@ int taxi_ride(){
                         case 3:
                             y++;
                             break;
+                        default:
+                            fprintf(stderr, "%s: %d. Error in taxi movement #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
                     }
                 }
             } else {
+                shdmem_return_sem_reserve(sem_sync_id);
                 shd_mem_returned_stats->top_cells_map[x][y]++;
                 trip_time += (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
                 timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
+                shdmem_return_sem_release(sem_sync_id);
                 crossed_cells++;
                 nanosleep(&timer, NULL);
             }
