@@ -25,10 +25,13 @@ sigset_t mask;
 //stats
 int taxi_completed_trips = 0;
 
+//movement timer
+struct timespec timer;
+
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
 void taxi_cleanup();
-void customer_research();
+void ranged_customer_research();
 void request_check();
 int in_bounds(int x_check, int y_check);
 int choose_direction();
@@ -63,7 +66,7 @@ int main(int argc, char *argv[]){
     processes_sync(sem_sync_id);
     
     while (1) {
-        customer_research();
+        ranged_customer_research();
     }
 }
 
@@ -114,8 +117,61 @@ void taxi_cleanup(){
     shmdt(shd_mem_returned_stats);
 }
 
-void customer_research(){
+void ranged_customer_research(){
+    timer.tv_sec = 0;
     if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2){ 
+        request_check();
+    } else if((taxi_shd_mem + x-1 * SO_WIDTH + y-1)->cell_value == 2){
+        x--;
+        timer.tv_nsec = (taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        y--;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y-1)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        request_check();
+    } else if ((taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_value == 2){
+        x--;
+        timer.tv_nsec = (taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        request_check();
+    } else if ((taxi_shd_mem + x-1 * SO_WIDTH + y+1)->cell_value == 2){
+        x--;
+        timer.tv_nsec = (taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        y++;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y+1)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        request_check();
+    } else if ((taxi_shd_mem + x * SO_WIDTH + y+1)->cell_value == 2){
+        y++;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y+1)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        request_check();
+    } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y+1)->cell_value == 2){
+        x++;
+        timer.tv_nsec = (taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        y++;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y+1)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        request_check();
+    } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value == 2){
+        x++;
+        timer.tv_nsec = (taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        request_check();
+    } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y-1)->cell_value == 2){
+        x++;
+        timer.tv_nsec = (taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        y--;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y-1)->cell_timensec_value;
+        nanosleep(&timer, NULL);
+        request_check();
+    } else if ((taxi_shd_mem + x * SO_WIDTH + y-1)->cell_value == 2){
+        y--;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y-1)->cell_timensec_value;
+        nanosleep(&timer, NULL);
         request_check();
     }
 }
@@ -177,7 +233,6 @@ int choose_direction(){
 
 int taxi_ride(){
     int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0, looping = 0;
-    struct timespec timer;
     timer.tv_sec = 0;
     //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
     sops[0].sem_op = 1; 
