@@ -649,6 +649,7 @@ void run(){
         } else if(WEXITSTATUS(status) == TAXI_ABORTED){
             if (execution_time < SO_DURATION) {
                 taxi_aborted++;
+                taxi_processes_regenerator(terminatedPid);
             } else {
                 killed_t ++;
             }
@@ -746,7 +747,7 @@ void processes_kill(){
     int i;
     for (i = 0; i < SO_TAXI; i++){
         if (taxis_pid_array[i] > 0){
-            kill(taxis_pid_array[i], SIGINT);
+            kill(taxis_pid_array[i], SIGQUIT);
         }
     }
 

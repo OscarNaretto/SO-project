@@ -72,6 +72,7 @@ void taxi_signal_actions(){
     
     sigemptyset(&mask);
     sigaddset(&mask,SIGINT);
+    sigaddset(&mask,SIGQUIT);
 
     sigprocmask(SIG_BLOCK, &mask, NULL);
 
@@ -80,9 +81,9 @@ void taxi_signal_actions(){
     sa_int.sa_flags = 0;
 
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
-    if(sigaction(SIGINT, &sa_int, NULL) == -1){
-        TEST_ERROR;
-    }
+
+    sigaction(SIGINT, &sa_int, NULL);
+    sigaction(SIGQUIT, &sa_int, NULL);
 }
 
 void taxi_signal_handler(int signum){
@@ -91,6 +92,11 @@ void taxi_signal_handler(int signum){
         taxi_cleanup();
         exit(TAXI_ABORTED);
         break;
+    case SIGQUIT:
+        ride_stats();
+        shmdt(taxi_shd_mem);
+        shmdt(shd_mem_returned_stats);
+        exit(TAXI_ABORTED);
     default:
         printf("\nSegnale %d non gestito\n", signum);
         break;
@@ -133,7 +139,6 @@ void request_check(){
             my_msgbuf.mtype = (x_s * SO_WIDTH) + y_s + 1;
             sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
             msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
-            
             raise(SIGINT);
         } else {
             shdmem_return_sem_reserve(sem_sync_id);
@@ -166,26 +171,30 @@ int choose_direction(){
         y--;
         return 3;
     }
+
     return -1;
 }
 
 int taxi_ride(){
-    int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0;
+    int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0, looping = 0;
     struct timespec timer;
     timer.tv_sec = 0;
     //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
 
-    while(!arrived){
+    while(!arrived && (looping < 100)){
         sops[0].sem_num = (x * SO_WIDTH) + y;
         if (x == x_to_go && y == y_to_go){
             arrived = 1;
-        } else {
-            mov_choice = choose_direction();
+        } else if ((mov_choice = choose_direction()) == -1){
+            looping++;
         }
         
         if(!arrived){
+            if(looping >= 10){
+                return 0;
+            }
             sops[1].sem_num = (x * SO_WIDTH) + y;
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
@@ -209,7 +218,7 @@ int taxi_ride(){
                             y++;
                             break;
                         default:
-                            fprintf(stderr, "%s: %d. Error in taxi movement #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+                            break;
                     }
                 }
             } else {
@@ -223,7 +232,7 @@ int taxi_ride(){
             }
         } 
     }
-    
+    taxi_completed_trips++;
     if (crossed_cells > shd_mem_returned_stats->longest_trip) {
         shdmem_return_sem_reserve(sem_sync_id);
         shd_mem_returned_stats->longest_trip = crossed_cells;
