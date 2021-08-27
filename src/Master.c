@@ -369,7 +369,7 @@ void shd_memory_initialization(){
         for(y = 0; y < SO_WIDTH; y++){
             (shd_mem_to_source + offset)->cell_value = (shd_mem_to_taxi + offset)->cell_value = master_map[x][y];
             (shd_mem_to_taxi + offset)->cell_timensec_value = rand() % (SO_TIMENSEC_MAX + 1 - SO_TIMENSEC_MIN) + SO_TIMENSEC_MIN;
-            shd_mem_returned_stats->top_cells_map[x][y] = 0;
+            shd_mem_returned_stats->top_cells_map[x * SO_WIDTH + y] = 0;
             offset++;
         }
     }
@@ -755,14 +755,57 @@ void processes_kill(){
 }
 
 void load_top_cells(){
-    /* - code - */
+    //to be tested
+    //not even compiled yet!
+    int i, x, y;
 
-    //try bucket method
+    
 
-    for (int x = 0; x < SO_HEIGHT; x++){
-        for (int y = 0; y < SO_WIDTH; y++){
+
+
+
+
+    for (x = 0; x < SO_HEIGHT; x++){
+        for (y = 0; y < SO_WIDTH; y++){
             if (1/*comparison with shdmem_topcellsmap*/){
                 master_map[x][y] = TOP_CELLS_VALUE;
+            }
+        }
+    }
+}
+
+void load_top_cells() {
+    int top_count = 0, k, j, index = 0;
+    int top_cells_map_cpy[SO_HEIGHT * SO_WIDTH];
+    int top_values[SO_TOP_CELLS];
+
+    shdmem_return_sem_reserve(sem_sync_id);
+    for (i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
+        top_cells_map_cpy[i] = shd_mem_returned_stats->top_cells_map[i];
+    }
+    shdmem_return_sem_release(sem_sync_id);
+
+    for (int i = 0; i < SO_HEIGHT * SO_WIDTH; i++) {
+        for (k = top_count; k > 0 && top_cells_map_cpy[i] > top_cells_map_cpy[top_values[k - 1]]; k--);
+        if (k >= SO_TOP_CELLS) continue; 
+        j = top_count;
+        if (j > SO_TOP_CELLS - 1) {
+            j = SO_TOP_CELLS - 1;
+        } else {
+            top_count++;
+        }
+        for (; j > k; j--) {
+            top_values[j] = top_values[j-1];
+        }
+        top_values[k] = i;
+    }
+    for (int x = 0; x < SO_HEIGHT; x++){
+        for (int y = 0; y < SO_WIDTH; y++){
+            for(k = 0; k < SO_TOP_CELLS; k++){
+                if (top_cells_map_cpy[x * SO_WIDTH + y] == top_values[k] && top_values[k] != 0){
+                    master_map[x][y] = TOP_CELLS_VALUE;
+                    top_values[k] = 0;
+                }
             }
         }
     }

@@ -269,7 +269,7 @@ int taxi_ride(){
                 }
             } else {
                 shdmem_return_sem_reserve(sem_sync_id);
-                shd_mem_returned_stats->top_cells_map[x][y]++;
+                shd_mem_returned_stats->top_cells_map[x * SO_WIDTH + y]++;
                 shdmem_return_sem_release(sem_sync_id);
                 crossed_cells++;
                 

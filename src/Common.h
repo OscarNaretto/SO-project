@@ -60,7 +60,7 @@ typedef struct{
 	int longest_trip;
 	int slowest_trip;
 	int max_trips_completed;
-	int top_cells_map[SO_HEIGHT][SO_WIDTH];    
+	int top_cells_map[SO_HEIGHT * SO_WIDTH];    
 	pid_t pid_longest_trip;
 	pid_t pid_slowest_trip;
 	pid_t pid_max_trips_completed;
