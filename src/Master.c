@@ -368,8 +368,7 @@ void shd_memory_initialization(){
 
     for(x = 0; x < SO_HEIGHT; x++){
         for(y = 0; y < SO_WIDTH; y++){
-            (shd_mem_to_source + offset)->cell_value = master_map[x][y];
-            (shd_mem_to_taxi+offset)->cell_value = master_map[x][y];
+            (shd_mem_to_source + offset)->cell_value = (shd_mem_to_taxi+offset)->cell_value = master_map[x][y];
             (shd_mem_to_taxi+offset)->cell_timensec_value = rand() % (SO_TIMENSEC_MAX + 1 - SO_TIMENSEC_MIN) + SO_TIMENSEC_MIN;
             shd_mem_returned_stats->top_cells_map[x][y] = 0;
             offset++;

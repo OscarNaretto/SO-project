@@ -118,7 +118,6 @@ void taxi_cleanup(){
 }
 
 void ranged_customer_research(){
-    timer.tv_sec = 0;
     if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2){ 
         request_check();
     } else if((taxi_shd_mem + x-1 * SO_WIDTH + y-1)->cell_value == 2){
@@ -233,7 +232,7 @@ int choose_direction(){
 
 int taxi_ride(){
     int mov_choice, trip_time = 0, crossed_cells = 0, arrived = 0, looping = 0;
-    timer.tv_sec = 0;
+
     //0 -> used to release current cell; 1 -> //used to reserve the cell I'm moving to
     sops[0].sem_op = 1; 
     sops[1].sem_op = -1; 
@@ -247,7 +246,7 @@ int taxi_ride(){
         }
         
         if(!arrived){
-            if(looping >= 10){
+            if(looping >= 5){
                 return 0;
             }
             sops[1].sem_num = (x * SO_WIDTH) + y;
