@@ -36,7 +36,6 @@ void request_check();
 int in_bounds(int x_check, int y_check);
 int choose_direction();
 int taxi_ride();
-void ride_stats();
 
 int main(int argc, char *argv[]){
     if(argc != 9){
@@ -96,7 +95,6 @@ void taxi_signal_handler(int signum){
         exit(TAXI_ABORTED);
         break;
     case SIGQUIT:
-        ride_stats();
         shmdt(taxi_shd_mem);
         shmdt(shd_mem_returned_stats);
         exit(TAXI_ABORTED);
@@ -107,8 +105,6 @@ void taxi_signal_handler(int signum){
 }
 
 void taxi_cleanup(){
-    ride_stats();
-
     sops[0].sem_num = (x * SO_WIDTH) + y; 
     sops[0].sem_op = 1;
     semop(sem_cells_cap_id, sops, 1);
@@ -195,10 +191,6 @@ void request_check(){
             sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
             msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
             raise(SIGINT);
-        } else {
-            shdmem_return_sem_reserve(sem_sync_id);
-            shd_mem_returned_stats->trips_completed++; 
-            shdmem_return_sem_release(sem_sync_id);
         }
     } else {
         taxi_cleanup();
@@ -278,35 +270,33 @@ int taxi_ride(){
             } else {
                 shdmem_return_sem_reserve(sem_sync_id);
                 shd_mem_returned_stats->top_cells_map[x][y]++;
-                trip_time += (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-                timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
                 shdmem_return_sem_release(sem_sync_id);
                 crossed_cells++;
+                
+                trip_time += (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
+                timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
                 nanosleep(&timer, NULL);
             }
         } 
     }
     taxi_completed_trips++;
+
+    shdmem_return_sem_reserve(sem_sync_id);
+    shd_mem_returned_stats->trips_completed++; 
     if (crossed_cells > shd_mem_returned_stats->longest_trip) {
-        shdmem_return_sem_reserve(sem_sync_id);
         shd_mem_returned_stats->longest_trip = crossed_cells;
         shd_mem_returned_stats->pid_longest_trip = getpid();
-        shdmem_return_sem_release(sem_sync_id);
     }
     if (trip_time > shd_mem_returned_stats->slowest_trip) {
-        shdmem_return_sem_reserve(sem_sync_id);
         shd_mem_returned_stats->slowest_trip = trip_time;
         shd_mem_returned_stats->pid_slowest_trip = getpid();
-        shdmem_return_sem_release(sem_sync_id);
     } 
-    return 1;
-}
-
-void ride_stats(){
-    shdmem_return_sem_reserve(sem_sync_id);
+    
     if (taxi_completed_trips > shd_mem_returned_stats->max_trips_completed){
         shd_mem_returned_stats->max_trips_completed = taxi_completed_trips;
         shd_mem_returned_stats->pid_max_trips_completed = getpid();
     }
     shdmem_return_sem_release(sem_sync_id);
+
+    return 1;
 }

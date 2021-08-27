@@ -81,7 +81,7 @@ void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
             if (check_message_for_exit()){
-                alarm(3);
+                alarm(5);
             } else {
                 alarm(0);
                 atexit(source_cleanup);

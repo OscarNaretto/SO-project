@@ -94,7 +94,6 @@ int main(int argc, char *argv[]){
     print_stats();
 
     memory_cleanup();
-    return 0;
 }
 
 void setup(){
@@ -288,14 +287,14 @@ void master_map_initialization(){
 }
 
 int can_be_placed(int x, int y){ 
-    if (x > 0 && y > 0 && master_map[x - 1][y - 1] == 0){ return 0;}
-    if (x > 0 && master_map[x - 1][y] == 0){ return 0;}
-    if (x > 0 && y < SO_WIDTH - 1 && master_map[x - 1][y + 1] == 0){ return 0;}
-    if (x < SO_HEIGHT - 1 && y > 0 && master_map[x + 1][y - 1] == 0){ return 0;}
-    if (x < SO_HEIGHT - 1 && master_map[x + 1][y] == 0){ return 0;}
-    if (x < SO_HEIGHT - 1 && y < SO_WIDTH - 1 && master_map[x + 1][y + 1] == 0){ return 0;}
-    if (y > 0 &&  master_map[x][y-1] == 0){ return 0;}
-    if (y < SO_WIDTH - 1 && master_map[x][y + 1] == 0){ return 0;}
+    if (x > 0 && y > 0 && master_map[x - 1][y - 1] == 0){ return 0; }
+    if (x > 0 && master_map[x - 1][y] == 0){ return 0; }
+    if (x > 0 && y < SO_WIDTH - 1 && master_map[x - 1][y + 1] == 0){ return 0; }
+    if (x < SO_HEIGHT - 1 && y > 0 && master_map[x + 1][y - 1] == 0){ return 0; }
+    if (x < SO_HEIGHT - 1 && master_map[x + 1][y] == 0){ return 0; }
+    if (x < SO_HEIGHT - 1 && y < SO_WIDTH - 1 && master_map[x + 1][y + 1] == 0){ return 0; }
+    if (y > 0 &&  master_map[x][y-1] == 0){ return 0; }
+    if (y < SO_WIDTH - 1 && master_map[x][y + 1] == 0){ return 0; }
 
     return 1;
 }
@@ -368,8 +367,8 @@ void shd_memory_initialization(){
 
     for(x = 0; x < SO_HEIGHT; x++){
         for(y = 0; y < SO_WIDTH; y++){
-            (shd_mem_to_source + offset)->cell_value = (shd_mem_to_taxi+offset)->cell_value = master_map[x][y];
-            (shd_mem_to_taxi+offset)->cell_timensec_value = rand() % (SO_TIMENSEC_MAX + 1 - SO_TIMENSEC_MIN) + SO_TIMENSEC_MIN;
+            (shd_mem_to_source + offset)->cell_value = (shd_mem_to_taxi + offset)->cell_value = master_map[x][y];
+            (shd_mem_to_taxi + offset)->cell_timensec_value = rand() % (SO_TIMENSEC_MAX + 1 - SO_TIMENSEC_MIN) + SO_TIMENSEC_MIN;
             shd_mem_returned_stats->top_cells_map[x][y] = 0;
             offset++;
         }
@@ -572,8 +571,8 @@ void master_handle_signal(int signum){
             }
             break;
         case SIGINT:
-            processes_kill();
             alarm(0);
+            processes_kill();
             break;
         default:
             printf("\nSegnale %d non gestito\n", signum);
@@ -584,8 +583,7 @@ void master_handle_signal(int signum){
 void print_master_map(){
     int x , y;
     
-    printf("\nPID MASTER: %d\n", getpid());
-    printf("Secondo: %d\n", execution_time);
+    printf("\nSecondo: %d\n", execution_time);
     for ( x = 0; x < SO_HEIGHT; x++){
         for ( y = 0; y < SO_WIDTH; y++){
             printf(" \x1B[30m");
@@ -615,11 +613,10 @@ void print_master_map(){
                         printf("\x1B[0m");
                     }
                     break;
-                case -1:
-                    //top cells
-
-
-
+                case TOP_CELLS_VALUE:
+                    printf("\x1b[47m");
+                    printf(" T");
+                    printf("\x1B[0m");
                 default:
                     break;
             }
@@ -665,7 +662,7 @@ void print_stats(){
     shdmem_return_sem_reserve(sem_sync_id);
     unresolved_trips = total_requests - shd_mem_returned_stats->trips_completed;
     printf("Statistiche della simulazione:\n");
-    printf("\n\nEsecuzione conclusa. La durata totale è di %d secondi\n", execution_time);
+    printf("\nEsecuzione conclusa. La durata totale è di %d secondi\n", execution_time);
     printf("Numero totale di richieste erogate: %d\n", total_requests);
     printf("Numero totale di viaggi eseguiti con successo: %d\n", shd_mem_returned_stats->trips_completed);
     printf("Numero totale di viaggi inevasi: %d\n", unresolved_trips);
@@ -737,7 +734,7 @@ void free_ipcs(){
 
 void memory_cleanup(){
     free_ipcs();
-    printf("IPCS deallocati\n");
+    printf("\nIPCS deallocati\n");
     master_free_all();
     printf("Memoria dinamica deallocata\n");
 }
@@ -755,7 +752,6 @@ void processes_kill(){
             kill(sources_pid_array[i], SIGINT);
         }
     }
-    printf("\nProcessi attivi eliminati\n");
 }
 
 void load_top_cells(){
