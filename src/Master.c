@@ -76,7 +76,7 @@ void free_ipcs();
 void memory_cleanup();
 void processes_kill();
 void load_top_cells();
-void load_top_cells();
+
 
 int main(int argc, char *argv[]){
     setup();
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]){
     //all the processes are generated and ready to run
     run();
     
-    //load_top_cells();        
+    load_top_cells();        
     print_master_map();
     print_stats();
 
@@ -591,32 +591,32 @@ void print_master_map(){
             switch (master_map[x][y]){
                 case 0:
                     printf("\x1B[101m");
-                    printf(" H");
+                    printf("\033[1;30m H");
                     printf("\x1B[0m");
                     break;
                 case 1:
                     if ((master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)) > 0) {
                         printf("\x1b[43m");
-                        printf(" %d", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
+                        printf("\033[1;30m %d", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
                         printf("\x1B[0m");
                     } else {
-                        printf("\x1b[47m--\x1B[0m");
+                        printf("\x1b[47m  \x1B[0m");
                     }
                     break;
                 case 2:
                     if ((master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)) > 0) {
                         printf("\x1B[102m");
-                        printf(" %d", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
+                        printf("\x1b[37m %d", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
                         printf("\x1B[0m");
                     } else {
                         printf("\x1B[102m");
-                        printf(" S");
+                        printf("\033[1;30m S");
                         printf("\x1B[0m");
                     }
                     break;
                 case TOP_CELLS_VALUE:
-                    printf("\x1b[47m");
-                    printf(" T");
+                    printf("\x1b[44m");
+                    printf("\033[1;30m T");
                     printf("\x1B[0m");
                 default:
                     break;
@@ -755,30 +755,18 @@ void processes_kill(){
     }
 }
 
-/*void load_top_cells(){
-    //to be tested
-    //not even compiled yet!
-    int i, x, y;
-
-    
-
-
-
-
-
-    for (x = 0; x < SO_HEIGHT; x++){
-        for (y = 0; y < SO_WIDTH; y++){
-            if (1/*comparison with shdmem_topcellsmap){
-                master_map[x][y] = TOP_CELLS_VALUE;
-            }
-        }
-    }
-}*/
+int cmpfunc (const void * a, const void * b) {
+   return ( *(int*)b - *(int*)a );
+}
 
 void load_top_cells() {
     int top_count = 0, k, j, index = 0;
     int top_cells_map_cpy[SO_HEIGHT * SO_WIDTH];
     int top_values[SO_TOP_CELLS];
+
+    for (int i = 0; i < SO_TOP_CELLS; i++){
+        top_values[i] = 0;
+    }
 
     shdmem_return_sem_reserve(sem_sync_id);
     for (int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
@@ -786,24 +774,16 @@ void load_top_cells() {
     }
     shdmem_return_sem_release(sem_sync_id);
 
-    for (int i = 0; i < SO_HEIGHT * SO_WIDTH; i++) {
-        for (k = top_count; k > 0 && top_cells_map_cpy[i] > top_cells_map_cpy[top_values[k - 1]]; k--);
-        if (k >= SO_TOP_CELLS) continue; 
-        j = top_count;
-        if (j > SO_TOP_CELLS - 1) {
-            j = SO_TOP_CELLS - 1;
-        } else {
-            top_count++;
-        }
-        for (; j > k; j--) {
-            top_values[j] = top_values[j-1];
-        }
-        top_values[k] = i;
+    qsort(top_cells_map_cpy, SO_HEIGHT * SO_WIDTH, sizeof(int), cmpfunc);
+
+    for (int i = 0; i < SO_TOP_CELLS; i++){
+        top_values[i] = top_cells_map_cpy[i];
     }
+
     for (int x = 0; x < SO_HEIGHT; x++){
         for (int y = 0; y < SO_WIDTH; y++){
             for(k = 0; k < SO_TOP_CELLS; k++){
-                if (top_cells_map_cpy[x * SO_WIDTH + y] == top_values[k] && top_values[k] != 0){
+                if (shd_mem_returned_stats->top_cells_map[x * SO_WIDTH + y] == top_values[k] && top_values[k] != 0){
                     master_map[x][y] = TOP_CELLS_VALUE;
                     top_values[k] = 0;
                 }
