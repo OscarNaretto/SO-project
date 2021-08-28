@@ -28,6 +28,10 @@ int taxi_completed_trips = 0;
 //movement timer
 struct timespec timer;
 
+//flag SIGINT
+int flag_sigint = 0;
+
+
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
 void taxi_cleanup();
@@ -92,7 +96,11 @@ void taxi_signal_handler(int signum){
     switch (signum){
     case SIGINT:
         taxi_cleanup();
-        exit(TAXI_ABORTED);
+        if(!flag_sigint){
+            exit(FINISH_SIGINT);
+        }   
+            flag_sigint = 0;
+            exit(TAXI_ABORTED);
         break;
     case SIGQUIT:
         shmdt(taxi_shd_mem);
@@ -200,6 +208,7 @@ void request_check(){
             my_msgbuf.mtype = (x_s * SO_WIDTH) + y_s + 1;
             sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
             msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
+            flag_sigint = 1;
             raise(SIGINT);
         }
     } else {

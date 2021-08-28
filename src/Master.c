@@ -655,7 +655,9 @@ void run(){
                 taxi_replaced++;
                 taxi_processes_regenerator(terminatedPid);
             }
-        } 
+        } else if (WEXITSTATUS(status) == FINISH_SIGINT){
+            taxi_aborted++;
+        }
     }
 }
 
