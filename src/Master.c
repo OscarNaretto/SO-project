@@ -584,7 +584,13 @@ void master_handle_signal(int signum){
 void print_master_map(){
     int x , y;
     
-    printf("\nSecondo: %d\n", execution_time);
+    printf("\n\nSecondo: %d\n\n", execution_time);
+    printf("Legenda della mappa: ");
+    printf("\tCelle HOLES: \x1B[101m \033[1;30m H \x1B[0m");
+    printf("\tCelle SOURCES: \x1B[102m \033[1;30m S \x1B[0m");
+    printf("\tCelle di passaggio con Taxi: \x1b[43m \033[1;30m 1 \x1B[0m");
+    printf("\tCelle di PASSAGGIO:\x1b[47m  \x1B[0m\n\n");
+    
     for ( x = 0; x < SO_HEIGHT; x++){
         for ( y = 0; y < SO_WIDTH; y++){
             printf(" \x1B[30m");

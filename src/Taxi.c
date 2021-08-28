@@ -53,10 +53,6 @@ int main(int argc, char *argv[]){
     timeout.tv_sec = atoi(argv[3]);
 
     msgqueue_id = atoi(argv[4]);
-    if (msgqueue_id == -1){
-        printf("msgget error");
-    }
-
     sem_sync_id = atoi(argv[5]);
     sem_cells_cap_id = atoi(argv[6]);
 
@@ -94,21 +90,21 @@ void taxi_signal_actions(){
 
 void taxi_signal_handler(int signum){
     switch (signum){
-    case SIGINT:
-        taxi_cleanup();
-        if(!flag_sigint){
-            exit(FINISH_SIGINT);
-        }   
-            flag_sigint = 0;
+        case SIGINT:
+            taxi_cleanup();
+            if(!flag_sigint){
+                exit(FINISH_SIGINT);
+            }   
+                flag_sigint = 0;
+                exit(TAXI_ABORTED);
+            break;
+        case SIGQUIT:
+            shmdt(taxi_shd_mem);
+            shmdt(shd_mem_returned_stats);
             exit(TAXI_ABORTED);
-        break;
-    case SIGQUIT:
-        shmdt(taxi_shd_mem);
-        shmdt(shd_mem_returned_stats);
-        exit(TAXI_ABORTED);
-    default:
-        printf("\nSegnale %d non gestito\n", signum);
-        break;
+        default:
+            printf("\nSegnale %d non gestito\n", signum);
+            break;
     }
 }
 
@@ -124,17 +120,17 @@ void taxi_cleanup(){
 void ranged_customer_research(){
     if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2){ 
         request_check();
-    } else {
+    }/* else {
         taxi_cleanup();
         exit(TAXI_REPLACED);
-    }
+    }*/
     
     
     
     
     
     
-    /*else if((taxi_shd_mem + x-1 * SO_WIDTH + y-1)->cell_value == 2){
+    else if((taxi_shd_mem + x-1 * SO_WIDTH + y-1)->cell_value == 2){
         x--;
         timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
@@ -186,12 +182,11 @@ void ranged_customer_research(){
         timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
-    }*/
+    }
 }
 
 void request_check(){
-    int num_bytes, x_s = x, y_s = y;
-    long int received = 0;
+    int num_bytes, x_s = x, y_s = y, received = 0;
 
     num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x_s * SO_WIDTH) + y_s) + 1, IPC_NOWAIT);
     if (num_bytes >= 0){
@@ -263,6 +258,12 @@ int taxi_ride(){
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
                     //timeout
+                    //Da vedere
+                    /*sops[0].sem_num = (x * SO_WIDTH) + y; 
+                    sops[0].sem_op = 1;
+                    sops[1].sem_num = (x_to_go * SO_WIDTH) + y_to_go; 
+                    sops[1].sem_op = 1;
+                    semop(sem_cells_cap_id, sops, 2);*/
                     return 0;
                 } else if(errno != EINTR && errno != EAGAIN){
                     TEST_ERROR;
