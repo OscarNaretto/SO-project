@@ -76,6 +76,7 @@ void free_ipcs();
 void memory_cleanup();
 void processes_kill();
 void load_top_cells();
+void load_top_cells();
 
 int main(int argc, char *argv[]){
     setup();
@@ -754,7 +755,7 @@ void processes_kill(){
     }
 }
 
-void load_top_cells(){
+/*void load_top_cells(){
     //to be tested
     //not even compiled yet!
     int i, x, y;
@@ -767,12 +768,12 @@ void load_top_cells(){
 
     for (x = 0; x < SO_HEIGHT; x++){
         for (y = 0; y < SO_WIDTH; y++){
-            if (1/*comparison with shdmem_topcellsmap*/){
+            if (1/*comparison with shdmem_topcellsmap){
                 master_map[x][y] = TOP_CELLS_VALUE;
             }
         }
     }
-}
+}*/
 
 void load_top_cells() {
     int top_count = 0, k, j, index = 0;
@@ -780,7 +781,7 @@ void load_top_cells() {
     int top_values[SO_TOP_CELLS];
 
     shdmem_return_sem_reserve(sem_sync_id);
-    for (i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
+    for (int i = 0; i < SO_HEIGHT * SO_WIDTH; i++){
         top_cells_map_cpy[i] = shd_mem_returned_stats->top_cells_map[i];
     }
     shdmem_return_sem_release(sem_sync_id);
