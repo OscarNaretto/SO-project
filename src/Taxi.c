@@ -118,54 +118,54 @@ void ranged_customer_research(){
         request_check();
     } else if((taxi_shd_mem + x-1 * SO_WIDTH + y-1)->cell_value == 2){
         x--;
-        timer.tv_nsec = (taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         y--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y-1)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
     } else if ((taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_value == 2){
         x--;
-        timer.tv_nsec = (taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
     } else if ((taxi_shd_mem + x-1 * SO_WIDTH + y+1)->cell_value == 2){
         x--;
-        timer.tv_nsec = (taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         y++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y+1)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
     } else if ((taxi_shd_mem + x * SO_WIDTH + y+1)->cell_value == 2){
         y++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y+1)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
     } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y+1)->cell_value == 2){
         x++;
-        timer.tv_nsec = (taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         y++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y+1)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
     } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value == 2){
         x++;
-        timer.tv_nsec = (taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
     } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y-1)->cell_value == 2){
         x++;
-        timer.tv_nsec = (taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         y--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y-1)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
     } else if ((taxi_shd_mem + x * SO_WIDTH + y-1)->cell_value == 2){
         y--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y-1)->cell_timensec_value;
+        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
         nanosleep(&timer, NULL);
         request_check();
     }
