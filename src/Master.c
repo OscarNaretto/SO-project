@@ -584,12 +584,13 @@ void master_handle_signal(int signum){
 void print_master_map(){
     int x , y;
     
-    printf("\n\nSecondo: %d\n\n", execution_time);
-    printf("Legenda della mappa: ");
-    printf("\tCelle HOLES: \x1B[101m \033[1;30m H \x1B[0m");
-    printf("\tCelle SOURCES: \x1B[102m \033[1;30m S \x1B[0m");
-    printf("\tCelle di passaggio con Taxi: \x1b[43m \033[1;30m 1 \x1B[0m");
-    printf("\tCelle di PASSAGGIO:\x1b[47m  \x1B[0m\n\n");
+    printf("\n\nSecondo: %d\n", execution_time);
+    printf("Legenda della mappa: \n");
+    printf("Celle HOLES: \x1B[101m\033[1;30m H\x1B[0m");
+    printf("\tCelle SOURCES: \x1B[102m\033[1;30m S\x1B[0m");
+    printf("\tCelle di passaggio con Taxi: \x1b[43m\033[1;30m 1\x1B[0m");
+    printf("\tCelle di passaggio:\x1b[47m  \x1B[0m");
+    printf("\tTop cells:\x1b[44m\033[1;30m T\x1B[0m\n\n");
     
     for ( x = 0; x < SO_HEIGHT; x++){
         for ( y = 0; y < SO_WIDTH; y++){
@@ -611,8 +612,8 @@ void print_master_map(){
                     break;
                 case 2:
                     if ((master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)) > 0) {
-                        printf("\x1B[102m");
-                        printf("\x1b[37m %d", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
+                        printf("\x1b[43m");
+                        printf("\033[1;30m %d", master_cap_map[x][y] - semctl(sem_cells_cap_id, (x * SO_WIDTH) + y ,GETVAL)); 
                         printf("\x1B[0m");
                     } else {
                         printf("\x1B[102m");
