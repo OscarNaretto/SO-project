@@ -19,9 +19,6 @@ struct sembuf sops[2];
 taxi_value_struct *taxi_shd_mem = 0;
 returned_stats *shd_mem_returned_stats = 0;
 
-//signals
-sigset_t mask;
-
 //stats
 int taxi_completed_trips = 0;
 
@@ -71,7 +68,8 @@ int main(int argc, char *argv[]){
 
 void taxi_signal_actions(){
     struct sigaction sa_int;
-    
+    sigset_t mask;
+
     sigemptyset(&mask);
     sigaddset(&mask,SIGINT);
     sigaddset(&mask,SIGQUIT);

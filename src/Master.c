@@ -19,7 +19,6 @@ int SO_INIT_REQUESTS_MAX  = -1;
 int **master_map = 0;
 int **master_cap_map = 0;
 
-
 //message queue
 int msgqueue_id = 0; 
 
@@ -36,7 +35,6 @@ int shd_mem_returned_stats_id = 0;
 source_value_struct *shd_mem_to_source = 0;
 taxi_value_struct *shd_mem_to_taxi = 0;
 returned_stats *shd_mem_returned_stats = 0;
-
 
 //processes
 pid_t *sources_pid_array = 0;
