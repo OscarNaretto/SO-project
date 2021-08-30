@@ -95,12 +95,13 @@ void taxi_signal_handler(int signum){
             if(!flag_sigint){
                 exit(FINISH_SIGINT);
             }   
-                flag_sigint = 0;
-                exit(TAXI_ABORTED);
+            exit(TAXI_ABORTED);
             break;
         case SIGQUIT:
             shmdt(taxi_shd_mem);
+            TEST_ERROR;
             shmdt(shd_mem_returned_stats);
+            TEST_ERROR;
             exit(TAXI_ABORTED);
         default:
             printf("\nSegnale %d non gestito\n", signum);
@@ -112,6 +113,7 @@ void taxi_cleanup(){
     sops[0].sem_num = (x * SO_WIDTH) + y; 
     sops[0].sem_op = 1;
     semop(sem_cells_cap_id, sops, 1);
+    TEST_ERROR;
 
     shmdt(taxi_shd_mem);
     shmdt(shd_mem_returned_stats);
@@ -124,65 +126,6 @@ void ranged_customer_research(){
         taxi_cleanup();
         exit(TAXI_REPLACED);
     }
-    
-    
-    
-    
-    
-    
-    /*else if((taxi_shd_mem + x-1 * SO_WIDTH + y-1)->cell_value == 2){
-        x--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        y--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        request_check();
-    } else if ((taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_value == 2){
-        x--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        request_check();
-    } else if ((taxi_shd_mem + x-1 * SO_WIDTH + y+1)->cell_value == 2){
-        x--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        y++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        request_check();
-    } else if ((taxi_shd_mem + x * SO_WIDTH + y+1)->cell_value == 2){
-        y++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        request_check();
-    } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y+1)->cell_value == 2){
-        x++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        y++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        request_check();
-    } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value == 2){
-        x++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        request_check();
-    } else if ((taxi_shd_mem + x+1 * SO_WIDTH + y-1)->cell_value == 2){
-        x++;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        y--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        request_check();
-    } else if ((taxi_shd_mem + x * SO_WIDTH + y-1)->cell_value == 2){
-        y--;
-        timer.tv_nsec = (taxi_shd_mem + x * SO_WIDTH + y)->cell_timensec_value;
-        nanosleep(&timer, NULL);
-        request_check();
-    }*/
 }
 
 void request_check(){
@@ -193,10 +136,12 @@ void request_check(){
         x_to_go = atoi(my_msgbuf.mtext) / SO_WIDTH;
         y_to_go = atoi(my_msgbuf.mtext) % SO_WIDTH;
         received = 1;
-    } else if (errno!=ENOMSG){
+    } else if (errno==ENOMSG){
+        errno = 0;
+    } else {
         printf("Errore durante la lettura del messaggio: %d", errno);
     }
-    
+
     if(received){
         if(!taxi_ride()){
             //resend
@@ -204,7 +149,7 @@ void request_check(){
             sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
             msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
             flag_sigint = 1;
-            raise(SIGINT);
+            raise(SIGQUIT);
         }
     } else {
         taxi_cleanup();
@@ -252,7 +197,9 @@ int taxi_ride(){
         }
         
         if(!arrived){
-            if(looping >= 5){
+            if(looping >= 2){
+                semop(sem_cells_cap_id, sops, 1);
+                TEST_ERROR;
                 return 0;
             }
 
@@ -260,12 +207,9 @@ int taxi_ride(){
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
                     //timeout
-                    //Da vedere
-                    /*sops[0].sem_num = (x * SO_WIDTH) + y; 
-                    sops[0].sem_op = 1;
-                    sops[1].sem_num = (x_to_go * SO_WIDTH) + y_to_go; 
-                    sops[1].sem_op = 1;
-                    semop(sem_cells_cap_id, sops, 2);*/
+                    errno = 0;
+                    semop(sem_cells_cap_id, sops, 1);
+                    TEST_ERROR;
                     return 0;
                 } else if(errno != EINTR && errno != EAGAIN){
                     TEST_ERROR;
