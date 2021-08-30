@@ -84,7 +84,6 @@ int main(int argc, char *argv[]){
     sops.sem_op = 0; 
     sops.sem_flg = 0;
     semop(sem_sync_id, &sops, 1);
-    TEST_ERROR;
     
     //all the processes are generated and ready to run
     run();
@@ -642,14 +641,7 @@ void run(){
 
     //collect stats from exit status of taxis or sources
     while ((terminatedPid = wait(&status)) > 0){
-        if (WEXITSTATUS(status) == SOURCE_AUTOKILL){
-            for(int i = 0; i < SO_SOURCES; i++){
-                if(sources_pid_array[i] == terminatedPid){
-                    sources_pid_array[i] = 0;
-                    break;
-                }
-            }
-        } else if(WEXITSTATUS(status) == TAXI_ABORTED){
+        if(WEXITSTATUS(status) == TAXI_ABORTED){
             if (execution_time < SO_DURATION) {
                 taxi_aborted++;
                 taxi_processes_regenerator(terminatedPid);
@@ -663,6 +655,7 @@ void run(){
             }
         } else if (WEXITSTATUS(status) == FINISH_SIGINT){
             taxi_aborted++;
+            killed_t ++;
         }
     }
 }

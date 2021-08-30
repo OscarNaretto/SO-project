@@ -85,15 +85,15 @@ void source_handle_signal(int signum){
                 alarm(2);
             } else {
                 alarm(0);
-                atexit(source_cleanup);
-                exit(SOURCE_AUTOKILL);
+                source_cleanup();
+                exit(EXIT_SUCCESS);
             }*/
             source_send_request();
             alarm(rand() % 5 + 1);
             break;
         case SIGINT:
             alarm(0);
-            atexit(source_cleanup);
+            source_cleanup();
             exit(EXIT_SUCCESS);
             break;
         default:

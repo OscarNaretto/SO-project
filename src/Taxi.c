@@ -89,7 +89,6 @@ void taxi_signal_actions(){
 void taxi_signal_handler(int signum){
     switch (signum){
         case SIGINT:
-            
             if(!flag_sigint){
                 if (shmdt(taxi_shd_mem) == -1) {
                     fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
@@ -267,7 +266,6 @@ int taxi_ride(){
             }
         } 
     }
-    printf("fatto\n");
     taxi_completed_trips++;
 
     shdmem_return_sem_reserve(sem_sync_id);
