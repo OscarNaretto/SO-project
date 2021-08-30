@@ -86,7 +86,7 @@ void source_handle_signal(int signum){
             } else {
                 alarm(0);
                 atexit(source_cleanup);
-                exit(SOURCE_AUTOKILL);
+                exit(EXIT_SUCCESS);
             }*/
             source_send_request();
             alarm(rand() % 5 + 1);

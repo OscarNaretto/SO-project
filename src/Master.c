@@ -563,7 +563,7 @@ void master_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
             execution_time++;
-            //print_master_map();
+            print_master_map();
             if(execution_time < SO_DURATION){
                 alarm(1);
             } else {
@@ -584,7 +584,7 @@ void print_master_map(){
     int x , y;
     
     printf("\n\nSecondo: %d\n", execution_time);
-    printf("Legenda della mappa: \n");
+    /*printf("Legenda della mappa: \n");
     printf("Celle HOLES: \x1B[101m\033[1;30m H\x1B[0m");
     printf("\tCelle SOURCES: \x1B[102m\033[1;30m S\x1B[0m");
     printf("\tCelle di passaggio con Taxi: \x1b[43m\033[1;30m 1\x1B[0m");
@@ -630,7 +630,7 @@ void print_master_map(){
         }
         printf("\n\n");
     }
-    printf("\x1B[0m");
+    printf("\x1B[0m");*/
 }
 
 void run(){
@@ -642,14 +642,7 @@ void run(){
 
     //collect stats from exit status of taxis or sources
     while ((terminatedPid = wait(&status)) > 0){
-        if (WEXITSTATUS(status) == SOURCE_AUTOKILL){
-            for(int i = 0; i < SO_SOURCES; i++){
-                if(sources_pid_array[i] == terminatedPid){
-                    sources_pid_array[i] = 0;
-                    break;
-                }
-            }
-        } else if(WEXITSTATUS(status) == TAXI_ABORTED){
+        if(WEXITSTATUS(status) == TAXI_ABORTED){
             if (execution_time < SO_DURATION) {
                 taxi_aborted++;
                 taxi_processes_regenerator(terminatedPid);

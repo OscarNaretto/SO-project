@@ -60,7 +60,6 @@ int main(int argc, char *argv[]){
 
     taxi_signal_actions();
     processes_sync(sem_sync_id);
-    
     while (1) {
         customer_research();
     }
@@ -123,6 +122,7 @@ void taxi_signal_handler(int signum){
 }
 
 void taxi_cleanup(){
+    printf("taxi_cleanup\n");
     sops[0].sem_num = (x * SO_WIDTH) + y; 
     sops[0].sem_op = 1;
     semop(sem_cells_cap_id, sops, 1);
@@ -150,6 +150,7 @@ void customer_research(){
 }
 
 void request_check(){
+    printf("request_check\n");
     int num_bytes, x_s = x, y_s = y, received = 0;
 
     num_bytes = msgrcv(msgqueue_id, &my_msgbuf, MSG_LEN, ((x_s * SO_WIDTH) + y_s) + 1, IPC_NOWAIT);
@@ -179,13 +180,16 @@ void request_check(){
     }
 }
 int in_bounds(int x_check, int y_check){
+    printf("in_bounds\n");
     if (x_check >= 0 && x_check < SO_HEIGHT && y_check >= 0 && y_check < SO_WIDTH){
+        printf("in_bounds prima di 1\n");
         return 1;
     }
     return 0;
 }
 
 int choose_direction(){
+    printf("choose_direction\n");
     if ((x < x_to_go) && in_bounds(x + 1, y) && ((taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value != 0)){
         x++;
         return 0;
@@ -204,6 +208,7 @@ int choose_direction(){
 }
 
 int taxi_ride(){
+    printf("taxi_ride\n");
     int move_choice = -1, trip_time = 0, crossed_cells = 0, arrived = 0, looping = 0;
 
     sops[0].sem_op = 1; 
@@ -267,7 +272,6 @@ int taxi_ride(){
             }
         } 
     }
-    printf("fatto\n");
     taxi_completed_trips++;
 
     shdmem_return_sem_reserve(sem_sync_id);

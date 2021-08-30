@@ -20,7 +20,7 @@ void processes_sync(int sem_id){
     TEST_ERROR;
 }
 
-void sync_reserve(sem_id){
+void sync_reserve(int sem_id){
     struct sembuf sops;
     sops.sem_num = 0; 
     sops.sem_op = -1;
@@ -28,7 +28,7 @@ void sync_reserve(sem_id){
     TEST_ERROR;
 }
 
-void sync_release(sem_id){
+void sync_release(int sem_id){
     struct sembuf sops;
     sops.sem_num = 0; 
     sops.sem_op = 1;
