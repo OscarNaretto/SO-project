@@ -90,7 +90,7 @@ int main(int argc, char *argv[]){
     run();
     
     load_top_cells();        
-    print_master_map();
+    //print_master_map();
     print_stats();
 
     memory_cleanup();
@@ -563,7 +563,7 @@ void master_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
             execution_time++;
-            print_master_map();
+            //print_master_map();
             if(execution_time < SO_DURATION){
                 alarm(1);
             } else {

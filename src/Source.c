@@ -45,31 +45,32 @@ int main(int argc, char *argv[]){
     for (int i = 0; i < SO_INIT_REQUESTS; i++){
         source_send_request();
     }
-
+    
     raise(SIGALRM);
 
     while (1) {
-        //pause();
+        
     }
 }
 
 void source_signal_actions(){
     struct sigaction sa_alarm, sa_int;
     sigset_t mask;
+
     sigemptyset(&mask); 
     sigaddset(&mask, SIGALRM);
     sigaddset(&mask, SIGINT);
 
     sigprocmask(SIG_BLOCK, &mask, NULL);
-    
     sa_alarm.sa_mask = mask;
     sa_int.sa_mask = mask;
     
     sa_alarm.sa_handler = source_handle_signal;
     sa_alarm.sa_flags =  SA_RESTART;
-    
+
     sa_int.sa_handler = source_handle_signal; 
     sa_int.sa_flags = 0;
+               
 
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
     
@@ -80,13 +81,15 @@ void source_signal_actions(){
 void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
-            if (check_message_for_exit()){
+            /*if (check_message_for_exit()){
                 alarm(2);
             } else {
                 alarm(0);
                 atexit(source_cleanup);
                 exit(SOURCE_AUTOKILL);
-            }
+            }*/
+            source_send_request();
+            alarm(rand() % 5 + 1);
             break;
         case SIGINT:
             alarm(0);
@@ -136,6 +139,13 @@ int check_message_for_exit(){
 }
 
 void source_cleanup(){
+    struct sembuf sops;
+
+    sops.sem_num = 0; 
+    sops.sem_op = 1;
+    semop(sem_sync_id, &sops, 1);
+    //TEST_ERROR;
+
     if (shmdt(source_shd_mem) == -1) {
         fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
         exit(EXIT_FAILURE);

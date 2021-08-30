@@ -32,7 +32,7 @@ int flag_sigint = 0;
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
 void taxi_cleanup();
-void ranged_customer_research();
+void customer_research();
 void request_check();
 int in_bounds(int x_check, int y_check);
 int choose_direction();
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]){
     processes_sync(sem_sync_id);
     
     while (1) {
-        ranged_customer_research();
+        customer_research();
     }
 }
 
@@ -141,7 +141,7 @@ void taxi_cleanup(){
     }
 }
 
-void ranged_customer_research(){
+void customer_research(){
     if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2){ 
         request_check();
     } else {
@@ -268,6 +268,7 @@ int taxi_ride(){
             }
         } 
     }
+    printf("fatto\n");
     taxi_completed_trips++;
 
     shdmem_return_sem_reserve(sem_sync_id);
