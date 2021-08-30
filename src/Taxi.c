@@ -28,7 +28,6 @@ struct timespec timer;
 //flag SIGINT
 int flag_sigint = 0;
 
-
 void taxi_signal_actions();
 void taxi_signal_handler(int signum);
 void taxi_cleanup();
@@ -60,7 +59,6 @@ int main(int argc, char *argv[]){
 
     taxi_signal_actions();
     processes_sync(sem_sync_id);
-    
     while (1) {
         customer_research();
     }
@@ -177,24 +175,30 @@ void request_check(){
         exit(TAXI_REPLACED);
     }
 }
+
 int in_bounds(int x_check, int y_check){
+    printf("in_bounds\n");
     if (x_check >= 0 && x_check < SO_HEIGHT && y_check >= 0 && y_check < SO_WIDTH){
-        return 1;
+        if ((taxi_shd_mem + x * SO_WIDTH + y)->cell_value != 0){
+            printf("in_bounds prima di 1\n");
+            return 1;
+        }
     }
     return 0;
 }
 
 int choose_direction(){
-    if ((x < x_to_go) && in_bounds(x + 1, y) && ((taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value != 0)){
+    printf("choose_direction\n");
+    if ((x < x_to_go) && in_bounds(x + 1, y)){
         x++;
         return 0;
-    } else if ((x > x_to_go) && in_bounds(x - 1, y) && ((taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_value != 0)){
+    } else if ((x > x_to_go) && in_bounds(x - 1, y)){
         x--;
         return 1;
-    } else if ((y < y_to_go) && in_bounds(x, y + 1) && ((taxi_shd_mem + x * SO_WIDTH + y+1)->cell_value != 0)){
+    } else if ((y < y_to_go) && in_bounds(x, y + 1)){
         y++;
         return 2;
-    } else if ((y > y_to_go) && in_bounds(x, y - 1) && ((taxi_shd_mem + x * SO_WIDTH + y-1)->cell_value != 0)){
+    } else if ((y > y_to_go) && in_bounds(x, y - 1)){
         y--;
         return 3;
     }
@@ -203,6 +207,7 @@ int choose_direction(){
 }
 
 int taxi_ride(){
+    printf("taxi_ride\n");
     int move_choice = -1, trip_time = 0, crossed_cells = 0, arrived = 0, looping = 0;
 
     sops[0].sem_op = 1; 
