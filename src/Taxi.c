@@ -89,10 +89,19 @@ void taxi_signal_actions(){
 void taxi_signal_handler(int signum){
     switch (signum){
         case SIGINT:
-            taxi_cleanup();
+            
             if(!flag_sigint){
+                if (shmdt(taxi_shd_mem) == -1) {
+                    fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+                    exit(EXIT_FAILURE);
+                }
+                if (shmdt(shd_mem_returned_stats) == -1) {
+                    fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+                    exit(EXIT_FAILURE);
+                }
                 exit(FINISH_SIGINT);
             }   
+            taxi_cleanup();
             exit(TAXI_ABORTED);
             break;
         case SIGQUIT:
@@ -115,6 +124,11 @@ void taxi_cleanup(){
     sops[0].sem_num = (x * SO_WIDTH) + y; 
     sops[0].sem_op = 1;
     semop(sem_cells_cap_id, sops, 1);
+    TEST_ERROR;
+
+    sops[0].sem_num = 0; 
+    sops[0].sem_op = 1;
+    semop(sem_sync_id, sops, 1);
     TEST_ERROR;
     
     if (shmdt(taxi_shd_mem) == -1) {
