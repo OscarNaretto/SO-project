@@ -583,7 +583,7 @@ void print_master_map(){
     int x , y;
     
     printf("\n\nSecondo: %d\n", execution_time);
-    /*printf("Legenda della mappa: \n");
+    printf("Legenda della mappa: \n");
     printf("Celle HOLES: \x1B[101m\033[1;30m H\x1B[0m");
     printf("\tCelle SOURCES: \x1B[102m\033[1;30m S\x1B[0m");
     printf("\tCelle di passaggio con Taxi: \x1b[43m\033[1;30m 1\x1B[0m");
@@ -629,7 +629,7 @@ void print_master_map(){
         }
         printf("\n\n");
     }
-    printf("\x1B[0m");*/
+    printf("\x1B[0m");
 }
 
 void run(){

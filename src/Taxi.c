@@ -177,26 +177,25 @@ void request_check(){
 }
 
 int in_bounds(int x_check, int y_check){
-    printf("in_bounds\n");
     if (x_check >= 0 && x_check < SO_HEIGHT && y_check >= 0 && y_check < SO_WIDTH){
-        printf("in_bounds prima di 1\n");
-        return 1;
+        if ((taxi_shd_mem + x_check * SO_WIDTH + y_check)->cell_value != 0){
+            return 1;
+        }
     }
     return 0;
 }
 
 int choose_direction(){
-    printf("choose_direction\n");
-    if ((x < x_to_go) && in_bounds(x + 1, y) && ((taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value != 0)){
+    if ((x < x_to_go) && in_bounds(x + 1, y)){
         x++;
         return 0;
-    } else if ((x > x_to_go) && in_bounds(x - 1, y) && ((taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_value != 0)){
+    } else if ((x > x_to_go) && in_bounds(x - 1, y)){
         x--;
         return 1;
-    } else if ((y < y_to_go) && in_bounds(x, y + 1) && ((taxi_shd_mem + x * SO_WIDTH + y+1)->cell_value != 0)){
+    } else if ((y < y_to_go) && in_bounds(x, y + 1)){
         y++;
         return 2;
-    } else if ((y > y_to_go) && in_bounds(x, y - 1) && ((taxi_shd_mem + x * SO_WIDTH + y-1)->cell_value != 0)){
+    } else if ((y > y_to_go) && in_bounds(x, y - 1)){
         y--;
         return 3;
     }
@@ -205,7 +204,6 @@ int choose_direction(){
 }
 
 int taxi_ride(){
-    printf("taxi_ride\n");
     int move_choice = -1, trip_time = 0, crossed_cells = 0, arrived = 0, looping = 0;
 
     sops[0].sem_op = 1; 
