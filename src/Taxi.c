@@ -99,6 +99,7 @@ void taxi_signal_handler(int signum){
                     fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
                     exit(EXIT_FAILURE);
                 }
+                sync_release(sem_sync_id);
                 exit(FINISH_SIGINT);
             }   
             taxi_cleanup();
@@ -113,6 +114,7 @@ void taxi_signal_handler(int signum){
                 fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
                 exit(EXIT_FAILURE);
             }
+            sync_release(sem_sync_id);
             exit(TAXI_ABORTED);
         default:
             printf("\nSegnale %d non gestito\n", signum);
@@ -126,10 +128,7 @@ void taxi_cleanup(){
     semop(sem_cells_cap_id, sops, 1);
     TEST_ERROR;
 
-    sops[0].sem_num = 0; 
-    sops[0].sem_op = 1;
-    semop(sem_sync_id, sops, 1);
-    TEST_ERROR;
+    sync_release(sem_sync_id);
     
     if (shmdt(taxi_shd_mem) == -1) {
         fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
@@ -187,16 +186,16 @@ int in_bounds(int x_check, int y_check){
 }
 
 int choose_direction(){
-    if (x < x_to_go && in_bounds(x + 1, y) && (taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value != 0){
+    if ((x < x_to_go) && in_bounds(x + 1, y) && ((taxi_shd_mem + x+1 * SO_WIDTH + y)->cell_value != 0)){
         x++;
         return 0;
-    } else if (x > x_to_go && in_bounds(x - 1, y) && (taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_value != 0){
+    } else if ((x > x_to_go) && in_bounds(x - 1, y) && ((taxi_shd_mem + x-1 * SO_WIDTH + y)->cell_value != 0)){
         x--;
         return 1;
-    } else if (y < y_to_go && in_bounds(x, y + 1) && (taxi_shd_mem + x * SO_WIDTH + y+1)->cell_value != 0){
+    } else if ((y < y_to_go) && in_bounds(x, y + 1) && ((taxi_shd_mem + x * SO_WIDTH + y+1)->cell_value != 0)){
         y++;
         return 2;
-    } else if (y > y_to_go && in_bounds(x, y - 1 && (taxi_shd_mem + x * SO_WIDTH + y-1)->cell_value != 0)){
+    } else if ((y > y_to_go) && in_bounds(x, y - 1) && ((taxi_shd_mem + x * SO_WIDTH + y-1)->cell_value != 0)){
         y--;
         return 3;
     }

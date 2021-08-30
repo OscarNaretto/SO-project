@@ -20,6 +20,22 @@ void processes_sync(int sem_id){
     TEST_ERROR;
 }
 
+void sync_reserve(sem_id){
+    struct sembuf sops;
+    sops.sem_num = 0; 
+    sops.sem_op = -1;
+    semop(sem_id, &sops, 1);
+    TEST_ERROR;
+}
+
+void sync_release(sem_id){
+    struct sembuf sops;
+    sops.sem_num = 0; 
+    sops.sem_op = 1;
+    semop(sem_id, &sops, 1);
+    TEST_ERROR;
+}
+
 void shdmem_return_sem_reserve(int sem_id){
     struct sembuf sops;
 

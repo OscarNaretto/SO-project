@@ -78,6 +78,8 @@ void allocation_error(char *file, char *data_structure);
 
 //semaphores
 void processes_sync(int sem_id);
+void sync_reserve(sem_id);
+void sync_release(sem_id);
 void shdmem_return_sem_reserve(int sem_id);
 void shdmem_return_sem_release(int sem_id);
 
