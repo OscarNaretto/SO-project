@@ -112,6 +112,7 @@ void source_send_request(){
     my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
     sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
     msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
+    TEST_ERROR;
 }
 
 int check_message_for_exit(){
@@ -126,6 +127,7 @@ int check_message_for_exit(){
         my_msgbuf.mtype = (x * SO_WIDTH) + y + 1;
         sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
         msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
+        TEST_ERROR;
         return 1;
     } else if (num_bytes <= 0 && errno!=ENOMSG){
         printf("Errore durante la lettura del messaggio: %d", errno);
@@ -134,5 +136,8 @@ int check_message_for_exit(){
 }
 
 void source_cleanup(){
-    shmdt(source_shd_mem);
+    if (shmdt(source_shd_mem) == -1) {
+        fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 }

@@ -96,10 +96,14 @@ void taxi_signal_handler(int signum){
             exit(TAXI_ABORTED);
             break;
         case SIGQUIT:
-            shmdt(taxi_shd_mem);
-            TEST_ERROR;
-            shmdt(shd_mem_returned_stats);
-            TEST_ERROR;
+            if (shmdt(taxi_shd_mem) == -1) {
+                fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+            if (shmdt(shd_mem_returned_stats) == -1) {
+                fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+                exit(EXIT_FAILURE);
+            }
             exit(TAXI_ABORTED);
         default:
             printf("\nSegnale %d non gestito\n", signum);
@@ -112,9 +116,15 @@ void taxi_cleanup(){
     sops[0].sem_op = 1;
     semop(sem_cells_cap_id, sops, 1);
     TEST_ERROR;
-
-    shmdt(taxi_shd_mem);
-    shmdt(shd_mem_returned_stats);
+    
+    if (shmdt(taxi_shd_mem) == -1) {
+        fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (shmdt(shd_mem_returned_stats) == -1) {
+        fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 }
 
 void ranged_customer_research(){
