@@ -146,6 +146,7 @@ void request_check(){
             my_msgbuf.mtype = (x_s * SO_WIDTH) + y_s + 1;
             sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
             msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
+            TEST_ERROR;
             flag_sigint = 1;
             raise(SIGQUIT);
         }
