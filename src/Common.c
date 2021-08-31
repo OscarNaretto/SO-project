@@ -10,30 +10,34 @@ void processes_sync(int sem_id){
     sops.sem_num = 0; 
     sops.sem_op = -1; 
     sops.sem_flg = 0;
-    semop(sem_id, &sops, 1);
-    TEST_ERROR;
+    if(semop(sem_id, &sops, 1) == -1 && errno != EINTR){
+       TEST_ERROR;
+    }
         
     sops.sem_num = 0;
     sops.sem_op = 0; 
     sops.sem_flg = 0;
-    semop(sem_id, &sops, 1);
-    TEST_ERROR;
+    if(semop(sem_id, &sops, 1) == -1 && errno != EINTR){
+       TEST_ERROR;
+    }
 }
 
 void sync_reserve(int sem_id){
     struct sembuf sops;
     sops.sem_num = 0; 
     sops.sem_op = -1;
-    semop(sem_id, &sops, 1);
-    TEST_ERROR;
+    if(semop(sem_id, &sops, 1) == -1 && errno != EINTR){
+       TEST_ERROR;
+    }
 }
 
 void sync_release(int sem_id){
     struct sembuf sops;
     sops.sem_num = 0; 
     sops.sem_op = 1;
-    semop(sem_id, &sops, 1);
-    TEST_ERROR;
+    if(semop(sem_id, &sops, 1) == -1 && errno != EINTR){
+       TEST_ERROR;
+    }
 }
 
 void shdmem_return_sem_reserve(int sem_id){

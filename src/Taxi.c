@@ -25,7 +25,7 @@ int taxi_completed_trips = 0;
 //movement timer
 struct timespec timer;
 
-//flag SIGINT
+//flag SIGINT sent from terminal
 int flag_sigint = 0;
 
 void taxi_signal_actions();
@@ -59,6 +59,7 @@ int main(int argc, char *argv[]){
 
     taxi_signal_actions();
     processes_sync(sem_sync_id);
+
     while (1) {
         customer_research();
     }
@@ -88,44 +89,28 @@ void taxi_signal_handler(int signum){
     switch (signum){
         case SIGINT:
             if(!flag_sigint){
-                if (shmdt(taxi_shd_mem) == -1) {
-                    fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
-                    exit(EXIT_FAILURE);
-                }
-                if (shmdt(shd_mem_returned_stats) == -1) {
-                    fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
-                    exit(EXIT_FAILURE);
-                }
-                sync_release(sem_sync_id);
-                exit(FINISH_SIGINT);
-            }   
-            taxi_cleanup();
+                taxi_cleanup(0);
+                exit(EXIT_SUCCESS);
+            }  
+            taxi_cleanup(1);
             exit(TAXI_ABORTED);
             break;
         case SIGQUIT:
-            if (shmdt(taxi_shd_mem) == -1) {
-                fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
-                exit(EXIT_FAILURE);
-            }
-            if (shmdt(shd_mem_returned_stats) == -1) {
-                fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
-                exit(EXIT_FAILURE);
-            }
-            sync_release(sem_sync_id);
-            exit(TAXI_ABORTED);
+            taxi_cleanup(0);
+            exit(EXIT_SUCCESS);
         default:
             printf("\nSegnale %d non gestito\n", signum);
             break;
     }
 }
 
-void taxi_cleanup(){
-    sops[0].sem_num = (x * SO_WIDTH) + y; 
-    sops[0].sem_op = 1;
-    semop(sem_cells_cap_id, sops, 1);
-    TEST_ERROR;
-
-    sync_release(sem_sync_id);
+void taxi_cleanup(int sem_free){
+    if (sem_free){
+        sops[0].sem_num = (x * SO_WIDTH) + y; 
+        sops[0].sem_op = 1;
+        semop(sem_cells_cap_id, sops, 1);
+        TEST_ERROR;
+    }
     
     if (shmdt(taxi_shd_mem) == -1) {
         fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
@@ -135,13 +120,15 @@ void taxi_cleanup(){
         fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));
         exit(EXIT_FAILURE);
     }
+
+    sync_release(sem_sync_id);
 }
 
 void customer_research(){
     if((taxi_shd_mem + x * SO_WIDTH + y)->cell_value == 2){ 
         request_check();
     } else {
-        taxi_cleanup();
+        taxi_cleanup(1);
         exit(TAXI_REPLACED);
     }
 }
@@ -166,12 +153,11 @@ void request_check(){
             my_msgbuf.mtype = (x_s * SO_WIDTH) + y_s + 1;
             sprintf(my_msgbuf.mtext, "%d", (x_to_go * SO_WIDTH) + y_to_go);
             msgsnd(msgqueue_id, &my_msgbuf, MSG_LEN, 0);
-            TEST_ERROR;
             flag_sigint = 1;
-            raise(SIGQUIT);
+            raise(SIGINT);
         }
     } else {
-        taxi_cleanup();
+        taxi_cleanup(1);
         exit(TAXI_REPLACED);
     }
 }
@@ -214,14 +200,13 @@ int taxi_ride(){
         if (x == x_to_go && y == y_to_go){
             arrived = 1;
         } else if ((move_choice = choose_direction()) == -1){
-            taxi_cleanup();
-            exit(TAXI_REPLACED);
+            taxi_cleanup(1);
+            exit(TAXI_ABORTED);
         }
         
         if(!arrived){
             if(looping >= 2){
                 semop(sem_cells_cap_id, sops, 1);
-                TEST_ERROR;
                 return 0;
             }
 
@@ -229,9 +214,7 @@ int taxi_ride(){
             if(semtimedop(sem_cells_cap_id, sops, 2, &timeout) == -1){
                 if(errno == EAGAIN){
                     //timeout
-                    errno = 0;
                     semop(sem_cells_cap_id, sops, 1);
-                    TEST_ERROR;
                     return 0;
                 } else if(errno != EINTR && errno != EAGAIN){
                     TEST_ERROR;

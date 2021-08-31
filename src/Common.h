@@ -25,7 +25,6 @@
 
 #define TAXI_REPLACED 11
 #define TAXI_ABORTED 12
-#define FINISH_SIGINT 118
 #define TOP_CELLS_VALUE 123
 
 

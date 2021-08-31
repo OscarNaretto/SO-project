@@ -71,7 +71,6 @@ void source_signal_actions(){
     sa_int.sa_handler = source_handle_signal; 
     sa_int.sa_flags = 0;
                
-
     sigprocmask(SIG_UNBLOCK, &mask, NULL);
     
     sigaction(SIGINT, &sa_int, NULL);
@@ -81,15 +80,13 @@ void source_signal_actions(){
 void source_handle_signal(int signum){
     switch (signum){
         case SIGALRM:
-            /*if (check_message_for_exit()){
-                alarm(2);
+            if (check_message_for_exit()){
+                alarm(3);
             } else {
                 alarm(0);
                 source_cleanup();
                 exit(EXIT_SUCCESS);
-            }*/
-            source_send_request();
-            alarm(rand() % 5 + 1);
+            }
             break;
         case SIGINT:
             alarm(0);
@@ -144,7 +141,6 @@ void source_cleanup(){
     sops.sem_num = 0; 
     sops.sem_op = 1;
     semop(sem_sync_id, &sops, 1);
-    //TEST_ERROR;
 
     if (shmdt(source_shd_mem) == -1) {
         fprintf(stderr, "%s: %d. Errore in shmdt #%03d: %s\n", __FILE__, __LINE__, errno, strerror(errno));

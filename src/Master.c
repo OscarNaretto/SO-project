@@ -43,10 +43,8 @@ pid_t *taxis_pid_array = 0;
 //stats
 int execution_time = 0;
 int total_requests = 0;
-int unresolved_trips = 0; //unresolved_trips = total_requests - completed_trips
 int taxi_aborted = 0;
 int taxi_replaced = 0;
-int killed_t = 0;
 
 void setup();
 void read_parameters();
@@ -89,7 +87,7 @@ int main(int argc, char *argv[]){
     run();
     
     load_top_cells();        
-    //print_master_map();
+    print_master_map();
     print_stats();
 
     memory_cleanup();
@@ -642,35 +640,26 @@ void run(){
     //collect stats from exit status of taxis or sources
     while ((terminatedPid = wait(&status)) > 0){
         if(WEXITSTATUS(status) == TAXI_ABORTED){
-            if (execution_time < SO_DURATION) {
-                taxi_aborted++;
-                taxi_processes_regenerator(terminatedPid);
-            } else {
-                killed_t ++;
-            }
+            taxi_aborted++;
+            taxi_processes_regenerator(terminatedPid);
         } else if (WEXITSTATUS(status) == TAXI_REPLACED){
             if (execution_time < SO_DURATION) {
                 taxi_replaced++;
                 taxi_processes_regenerator(terminatedPid);
             }
-        } else if (WEXITSTATUS(status) == FINISH_SIGINT){
-            taxi_aborted++;
-            killed_t ++;
         }
     }
 }
 
 void print_stats(){
     shdmem_return_sem_reserve(sem_sync_id);
-    unresolved_trips = total_requests - shd_mem_returned_stats->trips_completed;
     printf("Statistiche della simulazione:\n");
     printf("\nEsecuzione conclusa. La durata totale è di %d secondi\n", execution_time);
     printf("Numero totale di richieste erogate: %d\n", total_requests);
     printf("Numero totale di viaggi eseguiti con successo: %d\n", shd_mem_returned_stats->trips_completed);
-    printf("Numero totale di viaggi inevasi: %d\n", unresolved_trips);
+    printf("Numero totale di viaggi inevasi: %d\n", total_requests - shd_mem_returned_stats->trips_completed);
     printf("Numero totale di taxi abortiti: %d\n", taxi_aborted);
     printf("Numero totale di taxi sostituiti: %d\n", taxi_replaced);
-    printf("Numero totale di taxi uccisi in chiusura: %d\n", killed_t);
     printf("Il taxi con PID %d ha percorso più celle di tutti, per un totale di %d celle\n", shd_mem_returned_stats->pid_longest_trip, shd_mem_returned_stats->longest_trip);
     printf("Il taxi con PID %d ha impiegato un tempo maggiore di tutti gli altri, per un totale di %f secondi\n", shd_mem_returned_stats->pid_slowest_trip, shd_mem_returned_stats->slowest_trip/(double)1000000000);
     printf("Il taxi con PID %d ha raccolto il numero maggiore di clienti, per un totale di %d richieste\n", shd_mem_returned_stats->pid_max_trips_completed, shd_mem_returned_stats->max_trips_completed);
